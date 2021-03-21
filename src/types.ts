@@ -1,9 +1,11 @@
-import { Client, Integration, MessageEmbed } from "discord.js";
+import { Client, Integration, Message, MessageEmbed } from "discord.js";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
+import { Interaction } from "./extensions/Interaction";
 
 export interface FishyClientOptions {
   token: string;
+  author: string;
   cmd_dir?: string;
   cmd_array?: Array<FishyCommand>;
   event_dir?: string;
@@ -27,22 +29,26 @@ export interface CommandCategory {
 }
 
 export interface FishyCommand {
-  run: Function;
-  config: {
-    name: string;
-    category?: string;
-    bot_needed: boolean;
-    bot_perms?: Array<string> | string;
-    user_perms?: Array<string> | string;
-    interaction_options: object;
-  };
-  help: {
-    title?: string;
-    description: string;
-    usage: string;
-  };
+  run: FishyCommandCode;
+  config: FishyCommandConfig;
+  help: FishyCommandHelp;
 }
-
+export interface FishyCommandCode {
+  (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void>;
+}
+export interface FishyCommandConfig {
+  name: string;
+  category?: string;
+  bot_needed: boolean;
+  bot_perms?: Array<string> | string;
+  user_perms?: Array<string> | string;
+  interaction_options: ApplicationCommand;
+}
+export interface FishyCommandHelp {
+  title?: string;
+  description: string;
+  usage: string;
+}
 export interface raw_interaction {
   name: string;
   description: string;
@@ -59,6 +65,14 @@ export interface raw_recieved_interaction {
   user?: user_object;
   token: string;
   version: number;
+}
+
+export interface ApplicationCommand {
+  id?: string;
+  application_id?: string;
+  name: string;
+  description: string;
+  options?: Array<ApplicationCommandOption>;
 }
 
 export interface InteractionResponse {
@@ -95,14 +109,14 @@ export interface ApplicationCommandInteractionDataOption {
   options?: Array<ApplicationCommandInteractionDataOption>;
 }
 export enum ApplicationCommandOptionType {
-  SUB_COMMAND = 1,
-  SUB_COMMAND_GROUP = 2,
-  STRING = 3,
-  INTEGER = 4,
-  BOOLEAN = 5,
-  USER = 6,
-  CHANNEL = 7,
-  ROLE = 8,
+  "SUB_COMMAND" = 1,
+  "SUB_COMMAND_GROUP" = 2,
+  "STRING" = 3,
+  "INTEGER" = 4,
+  "BOOLEAN" = 5,
+  "USER" = 6,
+  "CHANNEL" = 7,
+  "ROLE" = 8,
 }
 export enum InteractionType {
   Ping = 1,
@@ -110,7 +124,7 @@ export enum InteractionType {
 }
 
 export interface ApplicationCommandOption {
-  type: number;
+  type: ApplicationCommandOptionType;
   name: string;
   description: string;
   required?: boolean;
@@ -148,4 +162,15 @@ export interface user_object {
   flags?: number;
   premium_type?: number;
   public_flags?: number;
+}
+
+export interface webhookOptions {
+  content?: string;
+  username?: string;
+  avatar_url?: string;
+  tts?: boolean;
+  file?: any;
+  embeds?: Array<MessageEmbed>;
+  payload_json?: string;
+  allowed_mentions?: any;
 }

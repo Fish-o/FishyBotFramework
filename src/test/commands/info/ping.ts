@@ -1,7 +1,22 @@
-export const config = {
-  name:'ping',
-  bot_needed:false
-}
-export const run = function asdf(){
-  console.log("rannn")
-}
+import { FishyClient } from "../../..";
+import { Interaction } from "../../../extensions/Interaction";
+import { FishyCommandCode, FishyCommandConfig, FishyCommandHelp } from "../../../types";
+
+export const run: FishyCommandCode = async (client, interaction) => {
+  interaction.send("asddfdafadf")
+  throw Error("BLAH");
+  interaction.send(`Current websocket ping: \`${client.ws.ping}ms\``);
+};
+
+export const config: FishyCommandConfig = {
+  name: "ping",
+  bot_needed: false,
+  interaction_options: {
+    name: "ping",
+    description: "Ping the bot"
+  },
+};
+export const help: FishyCommandHelp = {
+  description: "bbblah",
+  usage: "blah",
+};

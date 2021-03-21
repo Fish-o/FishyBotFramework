@@ -1,9 +1,20 @@
 import { Client, ClientOptions, Collection, Constants } from "discord.js";
-import { CommandCategory, FishyClientOptions, FishyCommand, FishyEvent } from "./types";
+import {
+  ApplicationCommand,
+  ApplicationCommandOption,
+  CommandCategory,
+  FishyClientOptions,
+  FishyCommand,
+  FishyEvent,
+  raw_interaction,
+  user_object,
+} from "./types";
 import * as fs from "fs";
-const discordEvents = Constants.Events;
 import { join } from "path";
 import { Interaction } from "./extensions/Interaction";
+import axios from "axios";
+import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
+import { ErrorEmbed } from "./utils/Embeds";
 
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
@@ -101,6 +112,85 @@ export class FishyClient extends Client {
       }
     });
   }
+
+  async load_interactions(force_update?: boolean, user_id?: string) {
+    // Fetch discord user for getting the user id
+    if (!user_id) {
+      const userdataPath = `https://discord.com/api/v8/users/@me`;
+      const userdata = await axios.get(userdataPath, {
+        headers: { Authorization: `Bot ${this.token}` },
+      });
+      const user: user_object = userdata.data;
+      user_id = user.id;
+    }
+
+    const SlashCommandsUrl = `https://discord.com/api/v8/applications/${user_id}/commands`;
+    if (force_update) {
+      this.commands.forEach((command) => {
+        const interaction = command.config.interaction_options;
+        axios
+          .post(SlashCommandsUrl, interaction, {
+            headers: { Authorization: `Bot ${this.token}` },
+          })
+          .catch((err) => {
+            console.log(`\nError:`);
+            console.log(err);
+            console.log(interaction);
+            console.log(err.response);
+          });
+      });
+    } else {
+      const discordSlashCommandsData = await axios.get(SlashCommandsUrl, {
+        headers: { Authorization: `Bot ${this.token}` },
+      });
+      const discordSlashCommands: Array<ApplicationCommand> = discordSlashCommandsData.data;
+
+      let botSlashCommands = this.commands.map((command) => command.config.interaction_options);
+      let discord_done: Array<string> = [];
+      botSlashCommands.forEach((botSlashCommand) => {
+        let discord_command = discordSlashCommands.find((cmd) => cmd.name == botSlashCommand.name);
+        if (!discord_command)
+          return axios
+            .post(`https://discord.com/api/v8/applications/${user_id}/commands`, botSlashCommand, {
+              headers: { Authorization: `Bot ${this.token}` },
+            })
+            .then((res) => console.log(`POST - ${res.status} Interaction: "${botSlashCommand.name}", `))
+            .catch((err) => {
+              console.log(err.response.config);
+              console.log(err.response.status);
+            });
+        discord_done.push(discord_command.id!);
+        if (!ApplicationCommandCompare(botSlashCommand, discord_command))
+          return axios
+            .patch(
+              `https://discord.com/api/v8/applications/${user_id}/commands/${discord_command.id}`,
+              botSlashCommand,
+              {
+                headers: { Authorization: `Bot ${this.token}` },
+              }
+            )
+            .then((res) => console.log(`PATCH - ${res.status} Interaction: "${botSlashCommand.name}", `))
+            .catch((err) => {
+              console.log(err.response.config);
+              console.log(err.response.status);
+            });
+      });
+      discordSlashCommands.forEach((cmd) => {
+        if (!discord_done.includes(cmd.id!)) {
+          axios
+            .delete(`https://discord.com/api/v8/applications/${user_id}/commands/${cmd.id}`, {
+              headers: { Authorization: `Bot ${this.token}` },
+            })
+            .then((res) => console.log(`DELETE - ${res.status} Interaction: "${cmd.name}", `))
+            .catch((err) => {
+              console.log(err.response.config);
+              console.log(err.response.status);
+            });
+        }
+      });
+    }
+  }
+
   async load() {
     const options = this.fishy_options;
 
@@ -136,12 +226,30 @@ export class FishyClient extends Client {
     }
 
     await Promise.all([this.load_events(options.event_dir), this.load_commands(options.cmd_dir)]);
+    await this.load_interactions();
   }
   async load_commandhandler() {
     // @ts-ignore
-    this.ws.on("INTERACTION_CREATE", (raw_interaction) => {
+    this.ws.on("INTERACTION_CREATE", async (raw_interaction) => {
       let interaction = new Interaction(this, raw_interaction);
-      interaction.send("YOOO");
+      let command = this.commands.get(interaction.name);
+      if (!command) {
+        return interaction.sendSilent(
+          `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
+        );
+      }
+      try {
+        await command.run(this, interaction);
+      } catch (err) {
+        let msg = `An error seems to have occured: \n\`\`\`${err}\`\`\``;
+        let embed = new ErrorEmbed(`An error seems to have occured in the command: "${interaction.name}"`, `Reason: \n\`\`\`${err}\`\`\``)
+        if (interaction.response_used) {
+          interaction.send_webhook(embed);
+        } else {
+          interaction.sendSilent(msg);
+        }
+      } finally {
+      }
     });
   }
 }

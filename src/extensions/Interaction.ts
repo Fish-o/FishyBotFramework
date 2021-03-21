@@ -6,6 +6,7 @@ import {
   InteractionApplicationCommandCallbackData,
   InteractionResponseType,
   raw_recieved_interaction,
+  webhookOptions,
 } from "../types";
 import axios from "axios";
 
@@ -58,6 +59,8 @@ export class Interaction {
   channel_id?: string;
   raw_member?: guild_member_object;
 
+  response_used: boolean;
+
   constructor(client: FishyClient, raw_interaction: raw_recieved_interaction) {
     this.client = client;
 
@@ -76,6 +79,8 @@ export class Interaction {
 
     this.name = this.data.name;
     this.args = this.data.options;
+
+    this.response_used = false;
   }
   async send(message?: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData) {
     let embed: MessageEmbed | undefined;
@@ -87,17 +92,20 @@ export class Interaction {
     if (options) {
       DATA = Object.assign(DATA, options);
     }
+    this.response_used = true
     return await axios.post(`https://discord.com/api/v8/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: DATA,
     });
+    
   }
-  async sendSilent(message: string, options: InteractionApplicationCommandCallbackData) {
+  async sendSilent(message: string, options?: InteractionApplicationCommandCallbackData) {
     let DATA: InteractionApplicationCommandCallbackData = { flags: 64, content: message };
     if (options) {
       DATA = Object.assign(DATA, options);
     }
 
+    this.response_used = true
     return await axios.post(`https://discord.com/api/v8/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: DATA,
@@ -147,20 +155,32 @@ export class Interaction {
     );
   }
 
-  get channel(){
-    if(!this.channel_id)
-      return undefined;
-    return this.client.channels.cache.get(this.channel_id)
+  async send_webhook(message?: string | MessageEmbed, options?: webhookOptions) {
+    let embed: MessageEmbed | undefined;
+    if (typeof message == "object") {
+      embed = message;
+      message = undefined;
+    }
+    let DATA: webhookOptions = { content: message, embeds: embed ? [embed] : undefined };
+    if (options) {
+      DATA = Object.assign(DATA, options);
+    }
+    
+    return await axios.post(`https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}`, 
+      DATA,
+    );
   }
-  get guild(){
-    if(!this.guild_id)
-      return undefined;
-    return this.client.guilds.cache.get(this.guild_id)
+  get channel() {
+    if (!this.channel_id) return undefined;
+    return this.client.channels.cache.get(this.channel_id);
   }
-  
-  get member(){
-    if(!this.raw_member?.user?.id)
-      return undefined;
-    return this.guild?.members.cache.get(this.raw_member.user.id)
+  get guild() {
+    if (!this.guild_id) return undefined;
+    return this.client.guilds.cache.get(this.guild_id);
   }
-};
+
+  get member() {
+    if (!this.raw_member?.user?.id) return undefined;
+    return this.guild?.members.cache.get(this.raw_member.user.id);
+  }
+}
