@@ -1,6 +1,8 @@
 import { MessageEmbed } from "discord.js";
 import { FishyClient } from "..";
 import {
+  ApplicationCommandInteractionData,
+  ApplicationCommandInteractionDataOption,
   ApplicationCommandOptionType,
   guild_member_object,
   InteractionApplicationCommandCallbackData,
@@ -46,11 +48,11 @@ import axios from "axios";
 export class Interaction {
   client: FishyClient;
   raw_interaction: any;
-  data: any;
+  data: ApplicationCommandInteractionData;
   type: number;
 
   name: string;
-  args: raw_recieved_interaction;
+  args: Array<ApplicationCommandInteractionDataOption>;
   id: string;
   token: string;
 
@@ -65,7 +67,7 @@ export class Interaction {
 
     this.raw_interaction = raw_interaction;
 
-    this.data = raw_interaction.data;
+    this.data = raw_interaction.data!;
     this.type = raw_interaction.type;
 
     this.id = raw_interaction.id;
@@ -77,7 +79,7 @@ export class Interaction {
     this.raw_member = raw_interaction.member;
 
     this.name = this.data.name;
-    this.args = this.data.options;
+    this.args = this.data.options!;
 
     this.response_used = false;
   }
