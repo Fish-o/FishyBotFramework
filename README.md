@@ -22,8 +22,6 @@ const Client = new FBF.FishyClient({
 Client.login()
 ```
 
-<br>
-
 ### Commands:
 
 A basic command should look something like this
