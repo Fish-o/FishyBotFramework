@@ -51,3 +51,14 @@ export const help: FishyCommandHelp = {
   usage: "/ping",
 };
 ```
+
+
+Commands can be stored like this
+```
+create - /commands/"category"/
+create - /commands/"category"/index.js
+export - "name" & "description" from /commands/"category"/index.js
+create - /commands/"category"/command.js
+```
+Example:
+![image](https://cdn.discordapp.com/attachments/739529254219284500/823534291233406987/unknown.png)
