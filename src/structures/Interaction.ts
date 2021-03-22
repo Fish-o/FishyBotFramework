@@ -10,8 +10,7 @@ import {
 } from "../types";
 import axios from "axios";
 
-/*
-
+/* Interaction example:
 {
   version: 1,
   type: 2,
@@ -82,6 +81,8 @@ export class Interaction {
 
     this.response_used = false;
   }
+
+  // default interaction response
   async send(message?: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData) {
     let embed: MessageEmbed | undefined;
     if (typeof message == "object") {
@@ -99,6 +100,8 @@ export class Interaction {
     });
     
   }
+
+  // Send an ephemeral message (only the command caller can see the message)
   async sendSilent(message: string, options?: InteractionApplicationCommandCallbackData) {
     let DATA: InteractionApplicationCommandCallbackData = { flags: 64, content: message };
     if (options) {
@@ -111,6 +114,8 @@ export class Interaction {
       data: DATA,
     });
   }
+
+  // Edit the original message, or a different message sent with the interaction token
   async edit(
     message: string | MessageEmbed,
     options?: InteractionApplicationCommandCallbackData | string,
@@ -145,6 +150,7 @@ export class Interaction {
     );
   }
 
+  // Delete the original message, or a different message sent with the interaction token
   async delete(message_id?: string) {
     if (!message_id) {
       message_id = "@original";
@@ -155,6 +161,7 @@ export class Interaction {
     );
   }
 
+  // Send a message via the interaction webhook, can only be used after interaction.send()
   async send_webhook(message?: string | MessageEmbed, options?: webhookOptions) {
     let embed: MessageEmbed | undefined;
     if (typeof message == "object") {
@@ -170,14 +177,18 @@ export class Interaction {
       DATA,
     );
   }
+
+  // Get the discord.js channel
   get channel() {
     if (!this.channel_id) return undefined;
     return this.client.channels.cache.get(this.channel_id);
   }
+  // Get the discord.js guild
   get guild() {
     if (!this.guild_id) return undefined;
     return this.client.guilds.cache.get(this.guild_id);
   }
+  // Get the discord.js member
   get member() {
     if (!this.raw_member?.user?.id) return undefined;
     return this.guild?.members.cache.get(this.raw_member.user.id);

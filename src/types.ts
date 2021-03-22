@@ -3,6 +3,8 @@ import { emit } from "node:process";
 import { FishyClient } from "./client";
 import { Interaction } from "./structures/Interaction";
 
+// ALLLL THE TYPES
+
 export interface FishyClientOptions {
   token: string;
   author: string;

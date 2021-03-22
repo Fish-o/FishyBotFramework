@@ -16,6 +16,7 @@ import axios from "axios";
 import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed } from "./utils/Embeds";
 
+// The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
   commands: Collection<string, FishyCommand>;
@@ -37,6 +38,8 @@ export class FishyClient extends Client {
     if (!options.disable_load_on_construct) this.load();
     if (!options.disable_command_handler) this.load_commandhandler();
   }
+
+  // Loads the events from a given event_dir
   async load_events(directory?: string) {
     return new Promise((resolve, reject) => {
       if (directory) {
@@ -63,20 +66,26 @@ export class FishyClient extends Client {
       }
     });
   }
+
+  // Loads the commands from a given cmd_dir
   async load_commands(directory?: string) {
     return new Promise(async (resolve, reject) => {
       if (directory) {
         try {
           const dirs = await fs.promises.readdir(directory);
-          console.log(dirs);
+
+          // Go through all the subdirecoties (categories)
           dirs.forEach(async (dir, dir_index, dir_array) => {
             const category_path = join(directory!, dir);
 
             let files = await fs.promises.readdir(category_path);
             console.log(files);
             if (!files) return;
+            // Find a the index file for a category
+            // That file says what the category does and that kind of stuff
             let index_path = files.find((file) => file.startsWith("index."));
             let category: CommandCategory | undefined = undefined;
+            // Create a anew category if an index file was found
             if (index_path) {
               category = require(join(process.cwd(), category_path, index_path));
               if (category) {
@@ -84,13 +93,17 @@ export class FishyClient extends Client {
                 this.categories.set(category.name, category);
               }
             }
+            // Go through all the files in the direcory
             files.forEach((file, file_index, file_array) => {
+              // Ignore all the non js/ts files, and the index file
               if ((file.endsWith(".js") || file.endsWith(".ts")) && !file.startsWith("index.")) {
                 let command_path: string = join(process.cwd(), category_path, file);
                 let new_command: FishyCommand = require(command_path);
+                // If the command doesnt have a given category, make the directory name its category
                 if (!new_command.config.category) {
                   new_command.config.category = dir;
                 }
+                // Check if the category already exists, and doesnt include the command already
                 if (
                   this.categories.has(new_command.config.category) &&
                   !this.categories.get(new_command.config.category)!.commands!.includes(new_command.config.name)
@@ -99,8 +112,10 @@ export class FishyClient extends Client {
                   old_category.commands!.push(new_command.config.name);
                   this.categories.set(new_command.config.category, old_category);
                 }
+                // Adds the command to the command Collection
                 this.commands.set(new_command.config.name, new_command);
               }
+              // If this was the last file, resolve
               if (file_index === file_array.length - 1 && dir_index === dir_array.length - 1) resolve(true);
             });
           });
@@ -241,8 +256,11 @@ export class FishyClient extends Client {
       try {
         await command.run(this, interaction);
       } catch (err) {
-        let msg = `An error seems to have occured: \n\`\`\`${err}\`\`\``;
-        let embed = new ErrorEmbed(`An error seems to have occured in the command: "${interaction.name}"`, `Reason: \n\`\`\`${err}\`\`\``)
+        let msg = `An error seems to have occured in the command: "${interaction.name}: \n\`\`\`${err}\`\`\``;
+        let embed = new ErrorEmbed(
+          `An error seems to have occured in the command: "${interaction.name}"`,
+          `Reason: \n\`\`\`${err}\`\`\``
+        );
         if (interaction.response_used) {
           interaction.send_webhook(embed);
         } else {
