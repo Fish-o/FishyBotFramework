@@ -3,6 +3,7 @@
 A framework for creating complex discord bots easily.
 
 <hr>
+
 ### How to use:
 1) install the package with `npm install fishy-bot-framework -s`
 2) import the package with iether `import * as FBF from "fishy-bot-framework"` 
@@ -18,6 +19,7 @@ const Client = new FBF.FishyClient({
 })
 Client.login()
 ```
+
 <br>
 ### Commands:
 A basic command should look something like this
