@@ -5,14 +5,16 @@ A framework for creating complex discord bots easily.
 <hr>
 
 ### How to use:
-1) install the package with `npm install fishy-bot-framework -s`
-2) import the package with iether `import * as FBF from "fishy-bot-framework"` 
-or `const FBF = require("fishy-bot-framework")`
-3) Start a new client:
+
+1. install the package with `npm install fishy-bot-framework -s`
+2. import the package with iether `import * as FBF from "fishy-bot-framework"`
+   or `const FBF = require("fishy-bot-framework")`
+3. Start a new client:
+
 ```TypeScript
 import * as FBF from "fishy-bot-framework"
 const Client = new FBF.FishyClient({
-  token:"discord bot token", 
+  token:"discord bot token",
   author:"Your name",
   cmd_dir: "./src/commands",
   event_dir: "./src/events",
@@ -21,8 +23,11 @@ Client.login()
 ```
 
 <br>
+
 ### Commands:
+
 A basic command should look something like this
+
 ```TypeScript
 // The code that gets run when the command gets called;
 // It takes the arguments `FishyClient` and `Interaction`
@@ -48,4 +53,3 @@ export const help: FishyCommandHelp = {
   usage: "/ping",
 };
 ```
-
