@@ -11,7 +11,7 @@ import {
 } from "./types";
 import * as fs from "fs";
 import { join } from "path";
-import { Interaction } from "./extensions/Interaction";
+import { Interaction } from "./structures/Interaction";
 import axios from "axios";
 import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed } from "./utils/Embeds";

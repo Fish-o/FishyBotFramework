@@ -178,9 +178,9 @@ export class Interaction {
     if (!this.guild_id) return undefined;
     return this.client.guilds.cache.get(this.guild_id);
   }
-
   get member() {
     if (!this.raw_member?.user?.id) return undefined;
     return this.guild?.members.cache.get(this.raw_member.user.id);
   }
+  
 }

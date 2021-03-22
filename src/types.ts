@@ -1,7 +1,7 @@
 import { Client, Integration, Message, MessageEmbed } from "discord.js";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
-import { Interaction } from "./extensions/Interaction";
+import { Interaction } from "./structures/Interaction";
 
 export interface FishyClientOptions {
   token: string;

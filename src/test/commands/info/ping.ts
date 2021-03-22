@@ -1,5 +1,5 @@
 import { FishyClient } from "../../..";
-import { Interaction } from "../../../extensions/Interaction";
+import { Interaction } from "../../../structures/Interaction";
 import { FishyCommandCode, FishyCommandConfig, FishyCommandHelp } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
