@@ -36,7 +36,7 @@ export interface FishyCommand {
   help: FishyCommandHelp;
 }
 export interface FishyCommandCode {
-  (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void>;
+  (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void | any>;
 }
 export interface FishyCommandConfig {
   name: string;
@@ -107,7 +107,8 @@ export interface ApplicationCommandInteractionData {
 }
 export interface ApplicationCommandInteractionDataOption {
   name: string;
-  value?: ApplicationCommandOptionType;
+  value?: string;
+  type?: ApplicationCommandOptionType;
   options?: Array<ApplicationCommandInteractionDataOption>;
 }
 export enum ApplicationCommandOptionType {
