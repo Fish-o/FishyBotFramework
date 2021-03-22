@@ -17,7 +17,6 @@ const Client = new FBF.FishyClient({
   token:"discord bot token",
   author:"Your name",
   cmd_dir: "./src/commands",
-  event_dir: "./src/events",
 })
 Client.login()
 ```
