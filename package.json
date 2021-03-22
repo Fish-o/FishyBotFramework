@@ -1,7 +1,7 @@
 {
   "name": "fishy-bot-framework",
-  "version": "0.0.2",
-  "description": "A basic framework for making slash command based discord botgs",
+  "version": "0.0.3",
+  "description": "A basic framework for making interaction based discord bot",
   "main": "lib/index.js",
   "author": "fish_o",
   "license": "gpl-3.0",
