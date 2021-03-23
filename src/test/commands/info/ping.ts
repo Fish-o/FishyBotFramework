@@ -3,6 +3,8 @@ import { Interaction } from "../../../structures/Interaction";
 import { FishyCommandCode, FishyCommandConfig, FishyCommandHelp } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
+  console.log(interaction.raw_interaction)
+  
   interaction.send("asddfdafadf")
   throw Error("BLAH");
   interaction.send(`Current websocket ping: \`${client.ws.ping}ms\``);

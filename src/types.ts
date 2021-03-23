@@ -15,6 +15,7 @@ export interface FishyClientOptions {
   //disable_category_import?: boolean;
   disable_load_on_construct?: boolean;
   disable_command_handler?: boolean;
+  disable_help_command?: boolean;
 }
 
 export interface FishyEvent {
@@ -26,8 +27,9 @@ export interface CommandCategory {
   name: string;
   description: string;
   commands?: Array<string>;
-  color?: string;
   help_embed?: MessageEmbed;
+  help_embed_title?: string;
+  help_embed_color?: string;
 }
 
 export interface FishyCommand {
@@ -42,14 +44,18 @@ export interface FishyCommandConfig {
   name: string;
   category?: string;
   bot_needed: boolean;
-  bot_perms?: Array<string> | string;
-  user_perms?: Array<string> | string;
+  bot_perms?: Array<string>;
+  user_perms?: Array<string>;
   interaction_options: ApplicationCommand;
 }
 export interface FishyCommandHelp {
   title?: string;
   description: string;
   usage: string;
+  color?: string;
+  help_embed?: MessageEmbed;
+  
+  
 }
 export interface raw_interaction {
   name: string;

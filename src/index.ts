@@ -11,8 +11,10 @@ if (require.main === module) {
       token: process.env.discord_token!,
       author: "Fish#2455",
       cmd_dir: "./lib/test/commands",
+      disable_load_on_construct: true,
     });
     await client.load();
     await client.login();
+    console.log(client.categories)
   })();
 }

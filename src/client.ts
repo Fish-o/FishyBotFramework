@@ -1,7 +1,9 @@
-import { Client, ClientOptions, Collection, Constants } from "discord.js";
+import { Client, ClientOptions, Collection, Constants, MessageEmbed } from "discord.js";
 import {
   ApplicationCommand,
   ApplicationCommandOption,
+  ApplicationCommandOptionChoice,
+  ApplicationCommandOptionType,
   CommandCategory,
   FishyClientOptions,
   FishyCommand,
@@ -15,6 +17,7 @@ import { Interaction } from "./structures/Interaction";
 import axios from "axios";
 import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed } from "./utils/Embeds";
+import { help } from "./test/commands/info/ping";
 
 // The main client!
 export class FishyClient extends Client {
@@ -36,7 +39,6 @@ export class FishyClient extends Client {
 
     //Loading commands and events'
     if (!options.disable_load_on_construct) this.load();
-    if (!options.disable_command_handler) this.load_commandhandler();
   }
 
   // Loads the events from a given event_dir
@@ -66,7 +68,6 @@ export class FishyClient extends Client {
       }
     });
   }
-
   // Loads the commands from a given cmd_dir
   async load_commands(directory?: string) {
     return new Promise(async (resolve, reject) => {
@@ -83,7 +84,7 @@ export class FishyClient extends Client {
             if (!files) return;
             // Find a the index file for a category
             // That file says what the category does and that kind of stuff
-            let index_path = files.find((file) => file.startsWith("index."));
+            let index_path = files.find((file) => file.startsWith("index.") && !file.endsWith(".d.ts"));
             let category: CommandCategory | undefined = undefined;
             // Create a anew category if an index file was found
             if (index_path) {
@@ -96,7 +97,11 @@ export class FishyClient extends Client {
             // Go through all the files in the direcory
             files.forEach((file, file_index, file_array) => {
               // Ignore all the non js/ts files, and the index file
-              if ((file.endsWith(".js") || file.endsWith(".ts")) && !file.startsWith("index.")) {
+              if (
+                (file.endsWith(".js") || file.endsWith(".ts")) &&
+                !file.startsWith("index.") &&
+                !file.endsWith(".d.ts")
+              ) {
                 let command_path: string = join(process.cwd(), category_path, file);
                 let new_command: FishyCommand = require(command_path);
                 // If the command doesnt have a given category, make the directory name its category
@@ -127,7 +132,6 @@ export class FishyClient extends Client {
       }
     });
   }
-
   async load_interactions(force_update?: boolean, user_id?: string) {
     // Fetch discord user for getting the user id
     if (!user_id) {
@@ -205,10 +209,210 @@ export class FishyClient extends Client {
       });
     }
   }
+  async load_commandhandler() {
+    // @ts-ignore
+    this.ws.on("INTERACTION_CREATE", async (raw_interaction) => {
+      let interaction = new Interaction(this, raw_interaction);
+      let command = this.commands.get(interaction.name);
+      if (!command) {
+        return interaction.sendSilent(
+          `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
+        );
+      }
+      try {
+        await command.run(this, interaction);
+      } catch (err) {
+        let msg = `An error seems to have occured in the command: "${interaction.name}: \n\`\`\`${err}\`\`\``;
+        let embed = new ErrorEmbed(
+          `An error seems to have occured in the command: "${interaction.name}"`,
+          `Reason: \n\`\`\`${err}\`\`\``
+        );
+        if (interaction.response_used) {
+          interaction.send_webhook(embed);
+        } else {
+          interaction.sendSilent(msg);
+        }
+      } finally {
+      }
+    });
+  }
+  async help_command(): Promise<FishyCommand> {
+    let cmd: FishyCommand = {
+      config: {
+        bot_needed: false,
+        name: "help",
+        interaction_options: {
+          name: "help",
+          description: "View info about the bot commands and categories",
+          options: [
+            {
+              name: "help",
+              description: "Basic help command",
+              type: ApplicationCommandOptionType.SUB_COMMAND,
+            },
+            {
+              name: "category",
+              description: "To get help about a category",
+              type: ApplicationCommandOptionType.SUB_COMMAND_GROUP,
+              options: this.categories.map((category) => {
+                console.log("in category");
+                let obj: ApplicationCommandOption = {
+                  name: category.name,
+                  description: category.description,
+                  type: ApplicationCommandOptionType.SUB_COMMAND,
+                  options: [
+                    {
+                      name: "command",
+                      description: "command to select",
+                      type: ApplicationCommandOptionType.STRING,
+                      choices: category.commands?.map((command) => {
+                        let choice: ApplicationCommandOptionChoice = {
+                          name: command,
+                          value: "cmd_" + command,
+                        };
+                        return choice;
+                      }),
+                    },
+                  ],
+                };
+                return obj;
+              }),
+            },
+            {
+              name: "command",
+              description: "Get help about a specific command",
+              type: ApplicationCommandOptionType.SUB_COMMAND,
+              options: [
+                {
+                  name: "name",
+                  description: "The command's name",
+                  required: true,
+                  type: ApplicationCommandOptionType.STRING,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      help: {
+        description: "Usefull for getting help about a category or command or the whole bot",
+        usage: "/help category info | /help command ping",
+      },
+      run: async (client, interaction) => {
+        let cmd_help = (cmd_name: string): MessageEmbed => {
+          let cmd = this.commands.get(cmd_name);
+          if (!cmd) {
+            cmd = this.commands.get(cmd_name.toLowerCase());
+            if (!cmd) {
+              cmd = this.commands.get(
+                this.commands.keyArray()[
+                  this.commands
+                    .keyArray()
+                    .map((key) => key.toLowerCase())
+                    .indexOf(cmd_name.toLowerCase())
+                ]
+              );
+              if (!cmd) {
+                return new ErrorEmbed("No command found");
+              }
+            }
+          }
+          if (cmd.help.help_embed) return cmd.help.help_embed;
+          let embed = new MessageEmbed().setAuthor(
+            this.user!.tag,
+            this.user!.displayAvatarURL(),
+            `https://discord.com/oauth2/authorize?client_id=${this.user!.id}&permissions=8&scope=bot%20applications.commands`
+          );
+          if (cmd.help.color) embed.setColor(cmd.help.color);
+          else embed.setColor(this.categories.get(cmd.config.category || "")?.help_embed_color || "RANDOM");
+          if (cmd.help.title) embed.setTitle(cmd.help.title);
+          else embed.setTitle(`${cmd.config.name} - Command Help`);
+          embed.setDescription(`${cmd.help.description}
+Usage: \`${cmd.help.usage}\`
+User required perms: \`${cmd.config.user_perms?.join(", ") || "None"}\`
+Bot user needed: \`${cmd.config.bot_needed}\`
+`);
+
+          embed.setFooter(`bot perms: ${cmd.config.bot_perms?.join(", ") || "None"} `);
+          return embed;
+        };
+        let cat_help = (cat_name: string): MessageEmbed => {
+          if (!cat_name) return new ErrorEmbed(`Category "${cat_name}" not found`);
+          let cat = this.categories.get(cat_name);
+          if (!cat) {
+            cat = this.categories.get(cat_name.toLowerCase());
+            if (!cat) {
+              cat = this.categories.get(
+                this.categories.keyArray()[
+                  this.categories
+                    .keyArray()
+                    .map((key) => key.toLowerCase())
+                    .indexOf(cat_name.toLowerCase())
+                ]
+              );
+              if (!cat) {
+                return new ErrorEmbed(`No category found for: "${cat_name}"`);
+              }
+            }
+          }
+
+          if (cat.help_embed) return cat.help_embed;
+          let embed = new MessageEmbed().setAuthor(
+            this.user!.tag,
+            this.user!.displayAvatarURL(),
+            `https://discord.com/oauth2/authorize?client_id=${this.user!.id}&permissions=8&scope=bot%20applications.commands`
+          );
+
+          if (cat.help_embed_color) embed.setColor(cat.help_embed_color);
+          else embed.setColor("RANDOM");
+          if (cat.help_embed_title) embed.setTitle(cat.help_embed_title);
+          else embed.setTitle(`${cat.name} - Category Help`);
+          embed.setDescription(`${cat.description}
+
+${cat.commands
+  ?.map((command_name) => {
+    let cmd = this.commands.get(command_name);
+    if (cmd) {
+      return `**${command_name}** \`${cmd.help.description}\``;
+    }
+    return `**${command_name}**`;
+  })
+  ?.join("\n")}
+`);
+          return embed;
+        };
+        console.log(interaction.args);
+        if (interaction.args.find((arg) => arg.name == "category")) {
+          let cat_arg = interaction.args.find((arg) => arg.name == "category");
+          if (cat_arg?.options?.[0]) {
+            if (cat_arg.options[0].options?.[0].value?.startsWith("cmd_")) {
+              let cmd_name = cat_arg.options[0].options[0].value.slice(4);
+              let cmd = this.commands.get(cmd_name);
+              if (!cmd?.config?.name) {
+                return interaction.send(new ErrorEmbed(`Command "${cmd_name}" not found`));
+              }
+              interaction.send(cmd_help(cmd_name));
+            } else {
+              let cat_name = cat_arg.options[0].name;
+              interaction.send(cat_help(cat_name));
+            }
+          }
+        } else if (interaction.args.find((arg) => arg.name == "command")?.options?.[0]?.name === "name") {
+          let cmd_name = interaction.args.find((arg) => arg.name == "command")!.options![0].value;
+          if (!cmd_name) {
+            return interaction.send(new ErrorEmbed(`Command "${cmd_name}" not found`));
+          }
+          interaction.send(cmd_help(cmd_name));
+        } else {
+        }
+      },
+    };
+    console.log(cmd);
+    return cmd;
+  }
 
   async load() {
     const options = this.fishy_options;
-
     if (options.event_array) {
       options.event_array.forEach((event) => {
         if (
@@ -241,33 +445,12 @@ export class FishyClient extends Client {
     }
 
     await Promise.all([this.load_events(options.event_dir), this.load_commands(options.cmd_dir)]);
+    if (!options.disable_help_command) {
+      let help_cmd = await this.help_command();
+      this.commands.set(help_cmd.config.name, help_cmd);
+    }
+
     await this.load_interactions();
-  }
-  async load_commandhandler() {
-    // @ts-ignore
-    this.ws.on("INTERACTION_CREATE", async (raw_interaction) => {
-      let interaction = new Interaction(this, raw_interaction);
-      let command = this.commands.get(interaction.name);
-      if (!command) {
-        return interaction.sendSilent(
-          `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
-        );
-      }
-      try {
-        await command.run(this, interaction);
-      } catch (err) {
-        let msg = `An error seems to have occured in the command: "${interaction.name}: \n\`\`\`${err}\`\`\``;
-        let embed = new ErrorEmbed(
-          `An error seems to have occured in the command: "${interaction.name}"`,
-          `Reason: \n\`\`\`${err}\`\`\``
-        );
-        if (interaction.response_used) {
-          interaction.send_webhook(embed);
-        } else {
-          interaction.sendSilent(msg);
-        }
-      } finally {
-      }
-    });
+    if (!options.disable_command_handler) await this.load_commandhandler();
   }
 }
