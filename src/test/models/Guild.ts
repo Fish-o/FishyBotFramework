@@ -1,6 +1,9 @@
 import { Schema, model } from "mongoose";
 
 const GuildConfigSchema = new Schema({
-  guild_id: Number,
+  id: String,
+  settings: Map,
+  
 });
-export const GuildModel = model("GuildData", GuildConfigSchema);
+export const GuildModel = model("guilds", GuildConfigSchema);
+ 

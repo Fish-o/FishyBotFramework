@@ -18,10 +18,12 @@ import axios from "axios";
 import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed } from "./utils/Embeds";
 import { help } from "./test/commands/info/ping";
+import mongoose, { Model } from "mongoose";
 
 // The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
+  GuildModel: Model<any, any>;
   commands: Collection<string, FishyCommand>;
   categories: Collection<string, CommandCategory>;
 
@@ -33,11 +35,19 @@ export class FishyClient extends Client {
 
     // Checking for things
     if (!options.token) throw Error("You must specify a token");
-    else this.token = options.token;
+    if (!options.db_uri && !options.disable_db_connect) throw Error("You must specify a database uri");
+    if (!options.guild_model && !options.disable_db_connect) throw Error("You must specify a mongoose guild model");
+    if (!options.guild_model.schema.path("id") && !options.disable_db_connect)
+      throw Error("The mongoose model needs the 'id' path as a String");
+    if (!options.guild_model.schema.path("settings") && !options.disable_db_connect)
+      throw Error("The mongoose model needs the 'settings' path as a Map");
     //if (!options.event_array && !options.event_dir) throw Error("You must specify an event directory or event array");
     if (!options.cmd_array && !options.cmd_dir) throw Error("You must specify a command directory or command array");
 
-    //Loading commands and events'
+    this.token = options.token;
+    this.GuildModel = options.guild_model;
+
+    //Loading commands and events
     if (!options.disable_load_on_construct) this.load();
   }
 
@@ -132,6 +142,7 @@ export class FishyClient extends Client {
       }
     });
   }
+  // Loads interactions and updates them with discord if needed
   async load_interactions(force_update?: boolean, user_id?: string) {
     // Fetch discord user for getting the user id
     if (!user_id) {
@@ -209,6 +220,7 @@ export class FishyClient extends Client {
       });
     }
   }
+  // Load the interaction command handler
   async load_commandhandler() {
     // @ts-ignore
     this.ws.on("INTERACTION_CREATE", async (raw_interaction) => {
@@ -236,6 +248,7 @@ export class FishyClient extends Client {
       }
     });
   }
+  // Generate a help command
   async help_command(): Promise<FishyCommand> {
     let cmd: FishyCommand = {
       config: {
@@ -321,7 +334,9 @@ export class FishyClient extends Client {
           let embed = new MessageEmbed().setAuthor(
             this.user!.tag,
             this.user!.displayAvatarURL(),
-            `https://discord.com/oauth2/authorize?client_id=${this.user!.id}&permissions=8&scope=bot%20applications.commands`
+            `https://discord.com/oauth2/authorize?client_id=${
+              this.user!.id
+            }&permissions=8&scope=bot%20applications.commands`
           );
           if (cmd.help.color) embed.setColor(cmd.help.color);
           else embed.setColor(this.categories.get(cmd.config.category || "")?.help_embed_color || "RANDOM");
@@ -360,7 +375,9 @@ Bot user needed: \`${cmd.config.bot_needed}\`
           let embed = new MessageEmbed().setAuthor(
             this.user!.tag,
             this.user!.displayAvatarURL(),
-            `https://discord.com/oauth2/authorize?client_id=${this.user!.id}&permissions=8&scope=bot%20applications.commands`
+            `https://discord.com/oauth2/authorize?client_id=${
+              this.user!.id
+            }&permissions=8&scope=bot%20applications.commands`
           );
 
           if (cat.help_embed_color) embed.setColor(cat.help_embed_color);
@@ -410,7 +427,18 @@ ${cat.commands
     console.log(cmd);
     return cmd;
   }
-
+  // Connect to the mongo db database
+  async load_db() {
+    try {
+      mongoose.connect(this.fishy_options.db_uri, { useNewUrlParser: true,  useUnifiedTopology: true});
+    } catch (err) {
+      console.log(err);
+      throw Error("Failed to connect to the MongoDB server: \n" + err);
+    } finally {
+      return;
+    }
+  }
+  // Load command :)
   async load() {
     const options = this.fishy_options;
     if (options.event_array) {
@@ -450,7 +478,8 @@ ${cat.commands
       this.commands.set(help_cmd.config.name, help_cmd);
     }
 
-    await this.load_interactions();
+    if (!options.disable_interaction_load) await this.load_interactions();
     if (!options.disable_command_handler) await this.load_commandhandler();
+    if (!options.disable_db_connect) await this.load_db();
   }
 }

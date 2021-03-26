@@ -11,40 +11,8 @@ import {
   webhookOptions,
 } from "../types";
 import axios from "axios";
+import * as DbUtils from "../utils/DbUtils";
 
-/* Interaction example:
-{
-  version: 1,
-  type: 2,
-  token: 'asdf'
-  member: {
-    user: {
-      username: 'Fish',
-      public_flags: 256,
-      id: '325893549071663104',
-      discriminator: '2455',
-      avatar: '5a4e62341afa47f200bd8f0dcf759512'
-    },
-    roles: [
-      '790969042851856425',
-      '790969058710519808',
-      '790969073210097715'
-    ],
-    premium_since: null,
-    permissions: '2147483647',
-    pending: false,
-    nick: 'sdfgsdfg',
-    mute: false,
-    joined_at: '2020-09-06T13:18:35.776000+00:00',
-    is_pending: false,
-    deaf: false
-  },
-  id: '792502570592894986',
-  guild_id: '752155794153406476',
-  data: { name: 'help', id: '791272914905333760' },
-  channel_id: '784438571620106311'
-}
-*/
 export class Interaction {
   client: FishyClient;
   raw_interaction: any;
@@ -95,12 +63,11 @@ export class Interaction {
     if (options) {
       DATA = Object.assign(DATA, options);
     }
-    this.response_used = true
+    this.response_used = true;
     return await axios.post(`https://discord.com/api/v8/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: DATA,
     });
-    
   }
 
   // Send an ephemeral message (only the command caller can see the message)
@@ -110,7 +77,7 @@ export class Interaction {
       DATA = Object.assign(DATA, options);
     }
 
-    this.response_used = true
+    this.response_used = true;
     return await axios.post(`https://discord.com/api/v8/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.ChannelMessageWithSource,
       data: DATA,
@@ -174,10 +141,8 @@ export class Interaction {
     if (options) {
       DATA = Object.assign(DATA, options);
     }
-    
-    return await axios.post(`https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}`, 
-      DATA,
-    );
+
+    return await axios.post(`https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}`, DATA);
   }
 
   // Get the discord.js channel
@@ -195,5 +160,48 @@ export class Interaction {
     if (!this.raw_member?.user?.id) return undefined;
     return this.guild?.members.cache.get(this.raw_member.user.id);
   }
-  
+
+  // DATABASE STUFF
+  async getDbGuild(options?: DbUtils.db_fetch_options) {
+    if (!this.guild_id) throw Error("No guild id on interaction found");
+    return DbUtils.fetch(this.client, this.guild_id, options);
+  }
+  async updateDbGuild(model: any) {
+    if (!this.guild_id) throw Error("No guild id on interaction found");
+    return DbUtils.update(this.client, this.guild_id, model);
+  }
 }
+
+/* Interaction example:
+{
+  version: 1,
+  type: 2,
+  token: 'asdf'
+  member: {
+    user: {
+      username: 'Fish',
+      public_flags: 256,
+      id: '325893549071663104',
+      discriminator: '2455',
+      avatar: '5a4e62341afa47f200bd8f0dcf759512'
+    },
+    roles: [
+      '790969042851856425',
+      '790969058710519808',
+      '790969073210097715'
+    ],
+    premium_since: null,
+    permissions: '2147483647',
+    pending: false,
+    nick: 'sdfgsdfg',
+    mute: false,
+    joined_at: '2020-09-06T13:18:35.776000+00:00',
+    is_pending: false,
+    deaf: false
+  },
+  id: '792502570592894986',
+  guild_id: '752155794153406476',
+  data: { name: 'help', id: '791272914905333760' },
+  channel_id: '784438571620106311'
+}
+*/

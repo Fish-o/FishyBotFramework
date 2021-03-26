@@ -1,4 +1,5 @@
 import { Client, Integration, Message, MessageEmbed } from "discord.js";
+import { Model, MongooseDocument } from "mongoose";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
 import { Interaction } from "./structures/Interaction";
@@ -7,6 +8,10 @@ import { Interaction } from "./structures/Interaction";
 
 export interface FishyClientOptions {
   token: string;
+
+  db_uri: string;
+  guild_model: Model<any, any>;
+
   author: string;
   cmd_dir?: string;
   cmd_array?: Array<FishyCommand>;
@@ -16,6 +21,9 @@ export interface FishyClientOptions {
   disable_load_on_construct?: boolean;
   disable_command_handler?: boolean;
   disable_help_command?: boolean;
+  disable_interaction_load?:boolean;
+  disable_db_connect?: boolean;
+  disable_db_default_upsert?: boolean;
 }
 
 export interface FishyEvent {
@@ -54,8 +62,6 @@ export interface FishyCommandHelp {
   usage: string;
   color?: string;
   help_embed?: MessageEmbed;
-  
-  
 }
 export interface raw_interaction {
   name: string;

@@ -16,7 +16,10 @@ import * as FBF from "fishy-bot-framework"
 const Client = new FBF.FishyClient({
   token:"discord bot token",
   author:"Your name",
+  db_uri: "mongodb://myDBReader:D1fficultP%40ssw0rd@mongos0.example.com:27017",
+  guild_model: GuildModel,
   cmd_dir: "./src/commands",
+  
 })
 Client.login()
 ```
@@ -60,4 +63,24 @@ export - "name" & "description" from /commands/"category"/index.js
 create - /commands/"category"/command.js
 ```
 Example:
+
 ![image](https://cdn.discordapp.com/attachments/739529254219284500/823534291233406987/unknown.png)
+
+
+
+
+
+
+
+
+
+
+## Database
+Required Mongoose data fields:
+```JavaScript
+{
+  id: String,     // The guild's id for fetching, index this
+  settings: Map   // Used for disabeling commands
+}
+```
+
