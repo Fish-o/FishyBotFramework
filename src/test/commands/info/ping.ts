@@ -3,7 +3,7 @@ import { Interaction } from "../../../structures/Interaction";
 import { FishyCommandCode, FishyCommandConfig, FishyCommandHelp } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
-  console.log(interaction.getDbGuild())
+  console.log(await interaction.getDbGuild())
   interaction.send("asddfdafadf")
 
 };
