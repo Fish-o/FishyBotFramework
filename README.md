@@ -80,7 +80,7 @@ Required Mongoose data fields:
 ```JavaScript
 {
   id: String,     // The guild's id for fetching, index this
-  settings: Map   // Used for disabeling commands
+  settings: Object   // Used for disabeling commands
 }
 ```
 

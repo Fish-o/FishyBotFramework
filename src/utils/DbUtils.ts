@@ -46,6 +46,7 @@ export function fetch(client: FishyClient, guild_id: string, options?: db_fetch_
 }
 
 export async function update(client: FishyClient, guild_id: string, model: any) {
-  await client.GuildModel.updateOne({ id: guild_id }, model);
-  await refresh(client, guild_id);
+  let res = await client.GuildModel.updateOne({ id: guild_id }, model, {new:true});
+  db_guild_cache.set(guild_id, {timestamp: Date.now(), data:res})
+  return res;
 }

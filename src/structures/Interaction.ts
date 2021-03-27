@@ -113,7 +113,7 @@ export class Interaction {
       message_id = "@original";
     }
 
-    return await axios.post(
+    return await axios.patch(
       `https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}/messages/${message_id}`,
       options
     );
@@ -168,7 +168,8 @@ export class Interaction {
   }
   async updateDbGuild(model: any) {
     if (!this.guild_id) throw Error("No guild id on interaction found");
-    return DbUtils.update(this.client, this.guild_id, model);
+    let res = await DbUtils.update(this.client, this.guild_id, model);
+    return res;
   }
 }
 

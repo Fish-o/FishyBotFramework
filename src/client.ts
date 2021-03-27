@@ -234,6 +234,7 @@ export class FishyClient extends Client {
       try {
         await command.run(this, interaction);
       } catch (err) {
+        console.error(err);
         let msg = `An error seems to have occured in the command: "${interaction.name}: \n\`\`\`${err}\`\`\``;
         let embed = new ErrorEmbed(
           `An error seems to have occured in the command: "${interaction.name}"`,
@@ -430,7 +431,7 @@ ${cat.commands
   // Connect to the mongo db database
   async load_db() {
     try {
-      mongoose.connect(this.fishy_options.db_uri, { useNewUrlParser: true,  useUnifiedTopology: true});
+      mongoose.connect(this.fishy_options.db_uri, { useNewUrlParser: true, useUnifiedTopology: true });
     } catch (err) {
       console.log(err);
       throw Error("Failed to connect to the MongoDB server: \n" + err);
