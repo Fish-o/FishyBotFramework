@@ -8,6 +8,7 @@ import {
   FishyClientOptions,
   FishyCommand,
   FishyEvent,
+  permission_overwritesType,
   raw_interaction,
   user_object,
 } from "./types";
@@ -231,6 +232,35 @@ export class FishyClient extends Client {
           `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
         );
       }
+      if (command.config.bot_needed === true) {
+        if (!interaction.guild) {
+          return interaction.sendSilent(`To use this command add the bot to this server`);
+        }
+      }
+      if(command.config.bot_perms?.[0]){
+        let failed = false;
+        command.config.bot_perms.forEach(perm=>{
+          if(!interaction.guild!.me?.hasPermission(perm)){
+            failed = true;
+          };
+        }) 
+        if(failed){
+          return interaction.sendSilent(`The bot doesnt have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(', ')}\``)
+        }
+      }
+
+      if(command.config.user_perms?.[0]){
+        let failed = false;
+        command.config.user_perms.forEach(perm=>{
+          if(interaction.member!.hasPermission(perm)){
+            failed = true;
+          };
+        }) 
+        if(failed){
+          return interaction.sendSilent(`You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(', ')}\``)
+        }
+      }
+
       try {
         await command.run(this, interaction);
       } catch (err) {

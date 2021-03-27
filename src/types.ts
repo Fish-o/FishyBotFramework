@@ -1,4 +1,4 @@
-import { Client, Integration, Message, MessageEmbed } from "discord.js";
+import { Client, Integration, Message, MessageEmbed, PermissionResolvable } from "discord.js";
 import { Model, MongooseDocument } from "mongoose";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
@@ -21,7 +21,7 @@ export interface FishyClientOptions {
   disable_load_on_construct?: boolean;
   disable_command_handler?: boolean;
   disable_help_command?: boolean;
-  disable_interaction_load?:boolean;
+  disable_interaction_load?: boolean;
   disable_db_connect?: boolean;
   disable_db_default_upsert?: boolean;
 }
@@ -52,8 +52,8 @@ export interface FishyCommandConfig {
   name: string;
   category?: string;
   bot_needed: boolean;
-  bot_perms?: Array<string>;
-  user_perms?: Array<string>;
+  bot_perms?: Array<PermissionResolvable>;
+  user_perms?: Array<PermissionResolvable>;
   interaction_options: ApplicationCommand;
 }
 export interface FishyCommandHelp {
@@ -116,7 +116,15 @@ export interface ApplicationCommandInteractionData {
   id: string;
   name: string;
   options?: Array<ApplicationCommandInteractionDataOption>;
+  resolved?: ApplicationCommandInteractionResolved;
 }
+
+export interface ApplicationCommandInteractionResolved {
+  members?: { [key: string]: guild_member_object };
+  users?: { [key: string]: user_object };
+  channels?: { [key: string]: channel_object };
+}
+
 export interface ApplicationCommandInteractionDataOption {
   name: string;
   value?: string;
@@ -179,6 +187,38 @@ export interface user_object {
   public_flags?: number;
 }
 
+export interface channel_object {
+  id: Snowflake;
+  type: number;
+  guild_id?: Snowflake;
+  position?: number;
+  permission_overwrites: Array<permission_overwrites>;
+  name?: string;
+  topic?: string | undefined;
+  nsfw?: boolean;
+  last_message_id?: Snowflake | undefined;
+  bitrate?: number;
+  user_limit?: number;
+  rate_limit_per_user?: number;
+  recipients?: Array<user_object>;
+  icon?: string | undefined;
+  owner_id?: Snowflake;
+  application_id?: Snowflake;
+  parent_id?: Snowflake | undefined;
+  last_pin_timestamp?: string;
+}
+
+export interface permission_overwrites {
+  id: Snowflake;
+  type: permission_overwritesType;
+  allow: string;
+  deny: string;
+}
+export enum permission_overwritesType {
+  ROLE = 0,
+  MEMBER = 1,
+}
+
 export interface webhookOptions {
   content?: string;
   username?: string;
@@ -189,3 +229,5 @@ export interface webhookOptions {
   payload_json?: string;
   allowed_mentions?: any;
 }
+
+type Snowflake = string;

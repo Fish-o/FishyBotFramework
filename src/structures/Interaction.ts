@@ -3,6 +3,7 @@ import { FishyClient } from "..";
 import {
   ApplicationCommandInteractionData,
   ApplicationCommandInteractionDataOption,
+  ApplicationCommandInteractionResolved,
   ApplicationCommandOptionType,
   guild_member_object,
   InteractionApplicationCommandCallbackData,
@@ -21,9 +22,10 @@ export class Interaction {
 
   name: string;
   args: Array<ApplicationCommandInteractionDataOption>;
+  mentions?: ApplicationCommandInteractionResolved;
   id: string;
   token: string;
-
+  
   guild_id?: string;
   channel_id?: string;
   raw_member?: guild_member_object;
@@ -48,6 +50,7 @@ export class Interaction {
 
     this.name = this.data.name;
     this.args = this.data.options!;
+    this.mentions = this.data.resolved;
 
     this.response_used = false;
   }
@@ -161,12 +164,14 @@ export class Interaction {
     return this.guild?.members.cache.get(this.raw_member.user.id);
   }
 
+  
+
   // DATABASE STUFF
   async getDbGuild(options?: DbUtils.db_fetch_options) {
     if (!this.guild_id) throw Error("No guild id on interaction found");
     return DbUtils.fetch(this.client, this.guild_id, options);
   }
-  async updateDbGuild(model: any) {
+  async updateDbGuild(model: any): Promise<any> {
     if (!this.guild_id) throw Error("No guild id on interaction found");
     let res = await DbUtils.update(this.client, this.guild_id, model);
     return res;
