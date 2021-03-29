@@ -25,7 +25,7 @@ export class Interaction {
 
   name: string;
   args: Array<ApplicationCommandInteractionDataOption>;
-  mentions?: ApplicationCommandInteractionResolved;
+  mentions;
   id: string;
   token: string;
 
@@ -40,7 +40,7 @@ export class Interaction {
 
     this.raw_interaction = raw_interaction;
 
-    this.data = new InteractionData(raw_interaction.data!);
+    this.data = new InteractionData(client, raw_interaction.data!);
     this.type = raw_interaction.type;
 
     this.id = raw_interaction.id;
@@ -53,7 +53,7 @@ export class Interaction {
 
     this.name = this.data.name;
     this.args = this.data.options!;
-    this.mentions = this.data.resolved;
+    this.mentions = this.data.mentions;
 
     this.response_used = false;
   }

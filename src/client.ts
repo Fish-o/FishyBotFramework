@@ -21,6 +21,7 @@ import { ErrorEmbed } from "./utils/Embeds";
 import { help } from "./test/commands/info/ping";
 import mongoose, { Model } from "mongoose";
 
+// TODO: Fix events!
 // The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
@@ -438,7 +439,11 @@ ${cat.commands
         if (interaction.args.find((arg) => arg.name == "category")) {
           let cat_arg = interaction.args.find((arg) => arg.name == "category");
           if (cat_arg?.options?.[0]) {
-            if (cat_arg.options[0].options?.[0].value?.startsWith("cmd_")) {
+            console.log(cat_arg);
+            if (
+              typeof cat_arg.options[0].options?.[0]?.value === "string" &&
+              cat_arg.options[0].options?.[0].value?.startsWith("cmd_")
+            ) {
               let cmd_name = cat_arg.options[0].options[0].value.slice(4);
               let cmd = this.commands.get(cmd_name);
               if (!cmd?.config?.name) {
@@ -452,7 +457,7 @@ ${cat.commands
           }
         } else if (interaction.args.find((arg) => arg.name == "command")?.options?.[0]?.name === "name") {
           let cmd_name = interaction.args.find((arg) => arg.name == "command")!.options![0].value;
-          if (!cmd_name) {
+          if (!cmd_name || typeof cmd_name !== "string") {
             return interaction.send(new ErrorEmbed(`Command "${cmd_name}" not found`));
           }
           interaction.send(cmd_help(cmd_name));
@@ -472,6 +477,17 @@ ${cat.commands
     } finally {
       return;
     }
+  }
+  // Catch discord errors
+  async load_error_handler() {
+    this.on("error", (err) => {
+      console.error("DISCORD API ERROR!!!");
+      console.log(err);
+    });
+    this.on("error", (err) => {
+      console.error("DISCORD API ERROR!!!");
+      console.log(err);
+    });
   }
   // Load command :)
   async load() {
@@ -516,5 +532,6 @@ ${cat.commands
     if (!options.disable_interaction_load) await this.load_interactions();
     if (!options.disable_command_handler) await this.load_commandhandler();
     if (!options.disable_db_connect) await this.load_db();
+    if (!options.disable_discord_error_catching) await this.load_error_handler();
   }
 }

@@ -24,6 +24,7 @@ export interface FishyClientOptions {
   disable_interaction_load?: boolean;
   disable_db_connect?: boolean;
   disable_db_default_upsert?: boolean;
+  disable_discord_error_catching?: boolean;
 }
 
 export interface FishyEvent {
@@ -120,14 +121,14 @@ export interface ApplicationCommandInteractionData {
 }
 
 export interface ApplicationCommandInteractionResolved {
-  members?: {[key: string]:guild_member_object}
+  members?: { [key: string]: guild_member_object };
   users?: { [key: string]: user_object };
   channels?: { [key: string]: channel_object };
 }
 
 export interface ApplicationCommandInteractionDataOption {
   name: string;
-  value?: string;
+  value?: string | boolean | number;
   type?: ApplicationCommandOptionType;
   options?: Array<ApplicationCommandInteractionDataOption>;
 }
@@ -169,7 +170,7 @@ export interface guild_member_object {
   deaf: boolean;
   mute: boolean;
   pending?: boolean;
-  permissions?: PermissionResolvable;
+  permissions?: string;
 }
 export interface user_object {
   username: string;
@@ -206,6 +207,16 @@ export interface channel_object {
   application_id?: Snowflake;
   parent_id?: Snowflake | undefined;
   last_pin_timestamp?: string;
+}
+
+export enum channel_types {
+  GUILD_TEXT = 0,
+  DM = 1,
+  GUILD_VOICE = 2,
+  GROUP_DM = 3,
+  GUILD_CATEGORY = 4,
+  GUILD_NEWS = 5,
+  GUILD_STORE = 6,
 }
 
 export interface permission_overwrites {
