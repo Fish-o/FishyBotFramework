@@ -91,7 +91,6 @@ export class FishyClient extends Client {
             const category_path = join(directory!, dir);
 
             let files = await fs.promises.readdir(category_path);
-            console.log(files);
             if (!files) return;
             // Find a the index file for a category
             // That file says what the category does and that kind of stuff
@@ -237,27 +236,35 @@ export class FishyClient extends Client {
           return interaction.sendSilent(`To use this command add the bot to this server`);
         }
       }
-      if(command.config.bot_perms?.[0]){
+      if (command.config.bot_perms?.[0]) {
         let failed = false;
-        command.config.bot_perms.forEach(perm=>{
-          if(!interaction.guild!.me?.hasPermission(perm)){
+        command.config.bot_perms.forEach((perm) => {
+          if (!interaction.guild!.me?.hasPermission(perm)) {
             failed = true;
-          };
-        }) 
-        if(failed){
-          return interaction.sendSilent(`The bot doesnt have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(', ')}\``)
+          }
+        });
+        if (failed) {
+          return interaction.sendSilent(
+            `The bot doesnt have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(
+              ", "
+            )}\``
+          );
         }
       }
 
-      if(command.config.user_perms?.[0]){
+      if (command.config.user_perms?.[0]) {
         let failed = false;
-        command.config.user_perms.forEach(perm=>{
-          if(interaction.member!.hasPermission(perm)){
+        command.config.user_perms.forEach((perm) => {
+          if (!interaction.member!.hasPermission(perm)) {
             failed = true;
-          };
-        }) 
-        if(failed){
-          return interaction.sendSilent(`You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(', ')}\``)
+          }
+        });
+        if (failed) {
+          return interaction.sendSilent(
+            `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(
+              ", "
+            )}\``
+          );
         }
       }
 
@@ -265,7 +272,7 @@ export class FishyClient extends Client {
         await command.run(this, interaction);
       } catch (err) {
         console.error(err);
-        let msg = `An error seems to have occured in the command: "${interaction.name}: \n\`\`\`${err}\`\`\``;
+        let msg = `An error seems to have occured in the command \`${interaction.name}\`: \n\`\`\`${err}\`\`\``;
         let embed = new ErrorEmbed(
           `An error seems to have occured in the command: "${interaction.name}"`,
           `Reason: \n\`\`\`${err}\`\`\``
@@ -299,7 +306,6 @@ export class FishyClient extends Client {
               description: "To get help about a category",
               type: ApplicationCommandOptionType.SUB_COMMAND_GROUP,
               options: this.categories.map((category) => {
-                console.log("in category");
                 let obj: ApplicationCommandOption = {
                   name: category.name,
                   description: category.description,
@@ -429,7 +435,6 @@ ${cat.commands
 `);
           return embed;
         };
-        console.log(interaction.args);
         if (interaction.args.find((arg) => arg.name == "category")) {
           let cat_arg = interaction.args.find((arg) => arg.name == "category");
           if (cat_arg?.options?.[0]) {
@@ -455,7 +460,6 @@ ${cat.commands
         }
       },
     };
-    console.log(cmd);
     return cmd;
   }
   // Connect to the mongo db database

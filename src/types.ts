@@ -120,7 +120,7 @@ export interface ApplicationCommandInteractionData {
 }
 
 export interface ApplicationCommandInteractionResolved {
-  members?: { [key: string]: guild_member_object };
+  members?: {[key: string]:guild_member_object}
   users?: { [key: string]: user_object };
   channels?: { [key: string]: channel_object };
 }
@@ -169,7 +169,7 @@ export interface guild_member_object {
   deaf: boolean;
   mute: boolean;
   pending?: boolean;
-  permissions?: string;
+  permissions?: PermissionResolvable;
 }
 export interface user_object {
   username: string;

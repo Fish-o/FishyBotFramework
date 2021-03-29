@@ -4,6 +4,7 @@ class Guild extends Structures.get("Guild") {
     if(options?.ignore_cache){
       // This needs code for fetching and caching from db
     }
+    
   }
 }
 Structures.extend("Guild", () => Guild);

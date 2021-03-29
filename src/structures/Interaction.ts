@@ -1,4 +1,4 @@
-import { MessageEmbed } from "discord.js";
+import { Message, MessageEmbed } from "discord.js";
 import { FishyClient } from "..";
 import {
   ApplicationCommandInteractionData,
@@ -13,11 +13,14 @@ import {
 } from "../types";
 import axios from "axios";
 import * as DbUtils from "../utils/DbUtils";
+import { InteractionData } from "./InteractionOptions";
+
+
 
 export class Interaction {
   client: FishyClient;
   raw_interaction: any;
-  data: ApplicationCommandInteractionData;
+  data: InteractionData;
   type: number;
 
   name: string;
@@ -25,7 +28,7 @@ export class Interaction {
   mentions?: ApplicationCommandInteractionResolved;
   id: string;
   token: string;
-  
+
   guild_id?: string;
   channel_id?: string;
   raw_member?: guild_member_object;
@@ -37,7 +40,7 @@ export class Interaction {
 
     this.raw_interaction = raw_interaction;
 
-    this.data = raw_interaction.data!;
+    this.data = new InteractionData(raw_interaction.data!);
     this.type = raw_interaction.type;
 
     this.id = raw_interaction.id;
@@ -151,7 +154,7 @@ export class Interaction {
   // Get the discord.js channel
   get channel() {
     if (!this.channel_id) return undefined;
-    return this.client.channels.cache.get(this.channel_id);
+    return this.guild?.channels.cache.get(this.channel_id);
   }
   // Get the discord.js guild
   get guild() {
@@ -163,8 +166,6 @@ export class Interaction {
     if (!this.raw_member?.user?.id) return undefined;
     return this.guild?.members.cache.get(this.raw_member.user.id);
   }
-
-  
 
   // DATABASE STUFF
   async getDbGuild(options?: DbUtils.db_fetch_options) {
