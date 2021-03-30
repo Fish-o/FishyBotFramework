@@ -6,6 +6,7 @@ import {
   ApplicationCommandInteractionResolved,
   channel_object,
   guild_member_object,
+  role_object,
   user_object,
 } from "../types";
 
@@ -56,6 +57,12 @@ export class InteractionDataMentions {
     if (!this.data.users) return undefined;
     let collection = new Collection<string, user_object>();
     Object.values(this.data.users).map((user) => collection.set(user.id, user));
+    return collection;
+  }
+  get roles():Collection<string, role_object>|undefined {
+    if (!this.data.roles) return undefined;
+    let collection = new Collection<string, role_object>();
+    Object.values(this.data.roles).map((role) => collection.set(role.id, role));
     return collection;
   }
 }

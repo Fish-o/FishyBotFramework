@@ -124,6 +124,7 @@ export interface ApplicationCommandInteractionResolved {
   members?: { [key: string]: guild_member_object };
   users?: { [key: string]: user_object };
   channels?: { [key: string]: channel_object };
+  roles?: { [key: string]: role_object };
 }
 
 export interface ApplicationCommandInteractionDataOption {
@@ -186,6 +187,22 @@ export interface user_object {
   flags?: number;
   premium_type?: number;
   public_flags?: number;
+}
+export interface role_object {
+  id: Snowflake;
+  name: string;
+  color: number;
+  hoist: boolean;
+  position: number;
+  permissions: string;
+  managed: boolean;
+  mentionable: boolean;
+  tags?: role_tags_object;
+}
+export interface role_tags_object {
+  bot_id?: Snowflake;
+  integration_id?: Snowflake;
+  premium_subscriber?: null;
 }
 
 export interface channel_object {

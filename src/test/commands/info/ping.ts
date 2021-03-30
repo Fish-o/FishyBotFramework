@@ -7,7 +7,7 @@ export const run: FishyCommandCode = async (client, interaction) => {
   console.log(interaction.data.mentions?.members?.first())
   console.log(interaction.data.mentions?.channels?.first())
   if(interaction.channel?.isText()){
-    interaction.channel.bulkDelete(0)
+    //interaction.channel.bulkDelete(0)
   }
   interaction.send("asddfdafadf")
 
