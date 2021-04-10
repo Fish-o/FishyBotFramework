@@ -15,11 +15,9 @@ import axios from "axios";
 import * as DbUtils from "../utils/DbUtils";
 import { InteractionData } from "./InteractionOptions";
 
-
-
 export class Interaction {
   client: FishyClient;
-  raw_interaction: any;
+  raw_interaction: raw_recieved_interaction;
   data: InteractionData;
   type: number;
 

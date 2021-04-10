@@ -25,6 +25,8 @@ export interface FishyClientOptions {
   disable_db_connect?: boolean;
   disable_db_default_upsert?: boolean;
   disable_discord_error_catching?: boolean;
+  disable_msg_notfound?: boolean;
+  disable_msg_error?: boolean;
 }
 
 export interface FishyEvent {

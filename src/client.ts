@@ -228,6 +228,7 @@ export class FishyClient extends Client {
       let interaction = new Interaction(this, raw_interaction);
       let command = this.commands.get(interaction.name);
       if (!command) {
+        if (!this.fishy_options.disable_msg_notfound) return;
         return interaction.sendSilent(
           `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
         );
@@ -246,7 +247,7 @@ export class FishyClient extends Client {
         });
         if (failed) {
           return interaction.sendSilent(
-            `The bot doesnt have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(
+            `The bot doesn't have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(
               ", "
             )}\``
           );
@@ -273,9 +274,10 @@ export class FishyClient extends Client {
         await command.run(this, interaction);
       } catch (err) {
         console.error(err);
-        let msg = `An error seems to have occured in the command \`${interaction.name}\`: \n\`\`\`${err}\`\`\``;
+        if (!this.fishy_options.disable_msg_error) return;
+        let msg = `An error seems to have occurred in the command \`${interaction.name}\`: \n\`\`\`${err}\`\`\``;
         let embed = new ErrorEmbed(
-          `An error seems to have occured in the command: "${interaction.name}"`,
+          `An error seems to have occurred in the command: "${interaction.name}"`,
           `Reason: \n\`\`\`${err}\`\`\``
         );
         if (interaction.response_used) {
