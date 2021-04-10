@@ -90,7 +90,10 @@ export class FishyClient extends Client {
             const category_path = join(directory!, dir);
 
             let files = await fs.promises.readdir(category_path);
-            if (!files) return;
+            if (!files) {
+              if (dir_index === dir_array.length - 1) resolve(true);
+              return;
+            }
             // Find a the index file for a category
             // That file says what the category does and that kind of stuff
             let index_path = files.find((file) => file.startsWith("index.") && !file.endsWith(".d.ts"));
@@ -226,10 +229,11 @@ export class FishyClient extends Client {
       let interaction = new Interaction(this, raw_interaction);
       let command = this.commands.get(interaction.name);
       if (!command) {
-        if (!this.fishy_options.disable_msg_notfound) return;
-        return interaction.sendSilent(
-          `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
-        );
+        if (!this.fishy_options.disable_msg_notfound)
+          interaction.sendSilent(
+            `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
+          );
+        return;
       }
       if (command.config.bot_needed === true) {
         if (!interaction.guild) {
