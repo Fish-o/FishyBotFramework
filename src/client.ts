@@ -18,10 +18,8 @@ import { Interaction } from "./structures/Interaction";
 import axios from "axios";
 import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed } from "./utils/Embeds";
-import { help } from "./test/commands/info/ping";
 import mongoose, { Model } from "mongoose";
 
-// TODO: Fix events!
 // The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;

@@ -1,8 +1,9 @@
 import { ApplicationCommand, ApplicationCommandOption, raw_interaction } from "../types";
 
-
 // Shit load of code used for comparing an interaction from discord, to one in the code.
 // Can be used to check if a updated
+
+// TODO: Improve this
 export function ApplicationCommandCompare(
   discord_interaction: ApplicationCommand,
   interaction: ApplicationCommand

@@ -33,7 +33,6 @@ export class InteractionData {
   }
 }
 
-// TODO: Does this work?
 export class InteractionDataMentions {
   data;
   client;
@@ -41,25 +40,25 @@ export class InteractionDataMentions {
     this.data = resolve_data;
     this.client = client;
   }
-  get channels():Collection<string, channel_object>|undefined {
+  get channels(): Collection<string, channel_object> | undefined {
     if (!this.data.channels) return undefined;
     let collection = new Collection<string, channel_object>();
     Object.values(this.data.channels).map((channel) => collection.set(channel.id, channel));
     return collection;
   }
-  get members():Collection<string, guild_member_object>|undefined {
+  get members(): Collection<string, guild_member_object> | undefined {
     if (!this.data.members) return undefined;
     let collection = new Collection<string, guild_member_object>();
     Object.keys(this.data.members).map((member_id) => collection.set(member_id, this.data.members![member_id]));
     return collection;
   }
-  get users():Collection<string, user_object>|undefined {
+  get users(): Collection<string, user_object> | undefined {
     if (!this.data.users) return undefined;
     let collection = new Collection<string, user_object>();
     Object.values(this.data.users).map((user) => collection.set(user.id, user));
     return collection;
   }
-  get roles():Collection<string, role_object>|undefined {
+  get roles(): Collection<string, role_object> | undefined {
     if (!this.data.roles) return undefined;
     let collection = new Collection<string, role_object>();
     Object.values(this.data.roles).map((role) => collection.set(role.id, role));
