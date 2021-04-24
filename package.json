@@ -1,6 +1,6 @@
 {
   "name": "fishy-bot-framework",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "A basic framework for making interaction based discord bot",
   "main": "lib/index.js",
   "author": "fish_o",
