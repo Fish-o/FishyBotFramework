@@ -39,7 +39,7 @@ export interface FishyClientOptions {
 }
 
 export interface FishyEvent {
-  trigger: WSEventType | keyof ClientEvents;
+  trigger: WSEventType | string | keyof ClientEvents;
   run: FishyEventCode;
 }
 
@@ -70,6 +70,7 @@ export interface FishyCommandConfig {
   bot_perms?: Array<PermissionResolvable>;
   user_perms?: Array<PermissionResolvable>;
   interaction_options: ApplicationCommand;
+  custom?: any;
 }
 export interface FishyCommandHelp {
   title?: string;
