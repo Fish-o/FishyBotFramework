@@ -55,10 +55,10 @@ export class FishyClient extends Client {
   async load_events(directory?: string) {
     return new Promise((resolve, reject) => {
       if (directory) {
-        fs.readdir(directory, (err, files) => {
+        fs.readdir(join(process.cwd(), directory), (err, files) => {
           if (err) return;
           files.forEach((file, index, array) => {
-            const event: FishyEvent = require(`${directory}/${file}`);
+            const event: FishyEvent = require(join(process.cwd(), directory, file));
             if (
               Object.keys(Constants.Events).includes(event.trigger.toUpperCase()) ||
               Object.values(Constants.Events)
@@ -83,11 +83,11 @@ export class FishyClient extends Client {
     return new Promise(async (resolve, reject) => {
       if (directory) {
         try {
-          const dirs = await fs.promises.readdir(directory);
+          const dirs = await fs.promises.readdir(join(process.cwd(), directory));
 
           // Go through all the subdirecoties (categories)
           dirs.forEach(async (dir, dir_index, dir_array) => {
-            const category_path = join(directory!, dir);
+            const category_path = join(process.cwd(), directory!, dir);
 
             let files = await fs.promises.readdir(category_path);
             if (!files) {
@@ -100,7 +100,7 @@ export class FishyClient extends Client {
             let category: CommandCategory | undefined = undefined;
             // Create a anew category if an index file was found
             if (index_path) {
-              category = require(join(process.cwd(), category_path, index_path));
+              category = require(join(category_path, index_path));
               if (category) {
                 category.commands = category.commands ?? [];
                 this.categories.set(category.name, category);
@@ -114,7 +114,7 @@ export class FishyClient extends Client {
                 !file.startsWith("index.") &&
                 !file.endsWith(".d.ts")
               ) {
-                let command_path: string = join(process.cwd(), category_path, file);
+                let command_path: string = join(category_path, file);
                 let new_command: FishyCommand = require(command_path);
                 // If the command doesnt have a given category, make the directory name its category
                 if (!new_command.config.category) {
@@ -155,8 +155,13 @@ export class FishyClient extends Client {
       const user: user_object = userdata.data;
       user_id = user.id;
     }
+    let SlashCommandsUrl: string;
+    if (this.fishy_options.dev_guild_id) {
+      SlashCommandsUrl = `https://discord.com/api/v8/applications/${user_id}/guilds/${this.fishy_options.dev_guild_id}/commands`;
+    } else {
+      SlashCommandsUrl = `https://discord.com/api/v8/applications/${user_id}/commands`;
+    }
 
-    const SlashCommandsUrl = `https://discord.com/api/v8/applications/${user_id}/commands`;
     if (force_update) {
       this.commands.forEach((command) => {
         const interaction = command.config.interaction_options;
@@ -183,7 +188,7 @@ export class FishyClient extends Client {
         let discord_command = discordSlashCommands.find((cmd) => cmd.name == botSlashCommand.name);
         if (!discord_command)
           return axios
-            .post(`https://discord.com/api/v8/applications/${user_id}/commands`, botSlashCommand, {
+            .post(SlashCommandsUrl, botSlashCommand, {
               headers: { Authorization: `Bot ${this.token}` },
             })
             .then((res) => console.log(`POST - ${res.status} Interaction: "${botSlashCommand.name}", `))
@@ -194,13 +199,9 @@ export class FishyClient extends Client {
         discord_done.push(discord_command.id!);
         if (!ApplicationCommandCompare(botSlashCommand, discord_command))
           return axios
-            .patch(
-              `https://discord.com/api/v8/applications/${user_id}/commands/${discord_command.id}`,
-              botSlashCommand,
-              {
-                headers: { Authorization: `Bot ${this.token}` },
-              }
-            )
+            .patch(SlashCommandsUrl + `/${discord_command.id}`, botSlashCommand, {
+              headers: { Authorization: `Bot ${this.token}` },
+            })
             .then((res) => console.log(`PATCH - ${res.status} Interaction: "${botSlashCommand.name}", `))
             .catch((err) => {
               console.log(err.response.config);
@@ -210,7 +211,7 @@ export class FishyClient extends Client {
       discordSlashCommands.forEach((cmd) => {
         if (!discord_done.includes(cmd.id!)) {
           axios
-            .delete(`https://discord.com/api/v8/applications/${user_id}/commands/${cmd.id}`, {
+            .delete(SlashCommandsUrl + `/${cmd.id}`, {
               headers: { Authorization: `Bot ${this.token}` },
             })
             .then((res) => console.log(`DELETE - ${res.status} Interaction: "${cmd.name}", `))
@@ -440,8 +441,8 @@ ${cat.commands
 `);
           return embed;
         };
-        if (interaction.args.find((arg) => arg.name == "category")) {
-          let cat_arg = interaction.args.find((arg) => arg.name == "category");
+        if (interaction.data.options.find((arg) => arg.name == "category")) {
+          let cat_arg = interaction.data.options.find((arg) => arg.name == "category");
           if (cat_arg?.options?.[0]) {
             console.log(cat_arg);
             if (
@@ -459,13 +460,31 @@ ${cat.commands
               interaction.send(cat_help(cat_name));
             }
           }
-        } else if (interaction.args.find((arg) => arg.name == "command")?.options?.[0]?.name === "name") {
-          let cmd_name = interaction.args.find((arg) => arg.name == "command")!.options![0].value;
+        } else if (interaction.data.options.find((arg) => arg.name == "command")?.options?.[0]?.name === "name") {
+          let cmd_name = interaction.data.options.find((arg) => arg.name == "command")!.options![0].value;
           if (!cmd_name || typeof cmd_name !== "string") {
             return interaction.send(new ErrorEmbed(`Command "${cmd_name}" not found`));
           }
           interaction.send(cmd_help(cmd_name));
         } else {
+          const embed = new MessageEmbed().setTitle("Help page").setDescription(`**Current categories:**
+          ${this.categories
+            .map(
+              (val, key) =>
+                `**${val.name}**\nDesc: \`${val.description}\`\nCommands: \`${val.commands?.join("`, `") || "None"}\``
+            )
+            .join("\n")}
+          `);
+          embed.setAuthor(
+            this.user!.tag,
+            this.user!.displayAvatarURL(),
+            `https://discord.com/oauth2/authorize?client_id=${
+              this.user!.id
+            }&permissions=8&scope=bot%20applications.commands`
+          );
+          embed.setColor("RANDOM");
+          embed.setTimestamp();
+          interaction.send(embed);
         }
       },
     };

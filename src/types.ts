@@ -1,4 +1,12 @@
-import { Client, Integration, Message, MessageEmbed, PermissionResolvable } from "discord.js";
+import {
+  Client,
+  ClientEvents,
+  Integration,
+  Message,
+  MessageEmbed,
+  PermissionResolvable,
+  WSEventType,
+} from "discord.js";
 import { Model, MongooseDocument } from "mongoose";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
@@ -27,11 +35,12 @@ export interface FishyClientOptions {
   disable_discord_error_catching?: boolean;
   disable_msg_notfound?: boolean;
   disable_msg_error?: boolean;
+  dev_guild_id?: Snowflake;
 }
 
 export interface FishyEvent {
-  trigger: string;
-  run: Function;
+  trigger: WSEventType | keyof ClientEvents;
+  run: FishyEventCode;
 }
 
 export interface CommandCategory {
@@ -50,6 +59,9 @@ export interface FishyCommand {
 }
 export interface FishyCommandCode {
   (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void | any>;
+}
+export interface FishyEventCode {
+  (Client: FishyClient, data: any): Promise<void | any>;
 }
 export interface FishyCommandConfig {
   name: string;
@@ -72,7 +84,7 @@ export interface raw_interaction {
   options?: Array<ApplicationCommandOption>;
 }
 
-export interface raw_recieved_interaction {
+export interface raw_received_interaction {
   id: string;
   type: InteractionType;
   data?: ApplicationCommandInteractionData;

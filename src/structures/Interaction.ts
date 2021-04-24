@@ -8,7 +8,7 @@ import {
   guild_member_object,
   InteractionApplicationCommandCallbackData,
   InteractionResponseType,
-  raw_recieved_interaction,
+  raw_received_interaction,
   webhookOptions,
 } from "../types";
 import axios from "axios";
@@ -17,7 +17,7 @@ import { InteractionData } from "./InteractionOptions";
 
 export class Interaction {
   client: FishyClient;
-  raw_interaction: raw_recieved_interaction;
+  raw_interaction: raw_received_interaction;
   data: InteractionData;
   type: number;
 
@@ -33,7 +33,7 @@ export class Interaction {
 
   response_used: boolean;
 
-  constructor(client: FishyClient, raw_interaction: raw_recieved_interaction) {
+  constructor(client: FishyClient, raw_interaction: raw_received_interaction) {
     this.client = client;
 
     this.raw_interaction = raw_interaction;
