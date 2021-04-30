@@ -1,12 +1,15 @@
-import { Client, ClientOptions, Collection, Constants, MessageEmbed } from "discord.js";
+import { Client, ClientOptions, Collection, Constants, MessageEmbed, PermissionResolvable } from "discord.js";
 import {
   ApplicationCommand,
   ApplicationCommandOption,
   ApplicationCommandOptionChoice,
   ApplicationCommandOptionType,
   CommandCategory,
+  FishyApplicationCommand,
+  FishyApplicationCommandOption,
   FishyClientOptions,
   FishyCommand,
+  FishyCommandConfig,
   FishyEvent,
   permission_overwritesType,
   raw_interaction,
@@ -16,17 +19,18 @@ import * as fs from "fs";
 import { join } from "path";
 import { Interaction } from "./structures/Interaction";
 import axios from "axios";
-import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
+import { ApplicationCommandBuild, ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed } from "./utils/Embeds";
 import mongoose, { Model } from "mongoose";
+import { InteractionDataOption } from "./structures/InteractionOptions";
+import { ifError } from "node:assert";
 
 // The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
   GuildModel: Model<any, any>;
-  commands: Collection<string, FishyCommand>;
+  public commands: Collection<string, FishyCommand>;
   categories: Collection<string, CommandCategory>;
-
   constructor(options: FishyClientOptions, client_options?: ClientOptions) {
     super(client_options);
     this.commands = new Collection();
@@ -130,7 +134,7 @@ export class FishyClient extends Client {
                   this.categories.set(new_command.config.category, old_category);
                 }
                 // Adds the command to the command Collection
-                this.commands.set(new_command.config.name, new_command);
+                this.commands.set(new_command.config.name.toLowerCase(), new_command);
               }
               // If this was the last file, resolve
               if (file_index === file_array.length - 1 && dir_index === dir_array.length - 1) resolve(true);
@@ -184,7 +188,8 @@ export class FishyClient extends Client {
 
       let botSlashCommands = this.commands.map((command) => command.config.interaction_options);
       let discord_done: Array<string> = [];
-      botSlashCommands.forEach((botSlashCommand) => {
+      botSlashCommands.forEach((fishyBotSlashCommand) => {
+        const botSlashCommand = ApplicationCommandBuild(fishyBotSlashCommand);
         let discord_command = discordSlashCommands.find((cmd) => cmd.name == botSlashCommand.name);
         if (!discord_command)
           return axios
@@ -258,18 +263,49 @@ export class FishyClient extends Client {
       }
 
       if (command.config.user_perms?.[0]) {
-        let failed = false;
-        command.config.user_perms.forEach((perm) => {
-          if (!interaction.member!.hasPermission(perm)) {
-            failed = true;
-          }
-        });
-        if (failed) {
+        function check_perms(perms: Array<PermissionResolvable>) {
+          let failed = false;
+          perms.forEach((perm) => {
+            if (!interaction.member!.hasPermission(perm)) {
+              failed = true;
+            }
+          });
+          return !failed;
+        }
+
+        if (command.config.user_perms?.[0] && !check_perms(command.config.user_perms)) {
           return interaction.sendSilent(
             `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(
               ", "
             )}\``
           );
+        } else if (interaction.data.options?.[0] && command.config.interaction_options.options?.[0]) {
+          function check_option_perms(
+            interaction_options: Array<InteractionDataOption>,
+            config_options: Array<FishyApplicationCommandOption>
+          ): boolean {
+            if (!interaction_options?.[0] || !config_options?.[0]) return true;
+            interaction_options.forEach((option) => {
+              const conf_option = config_options.find((opt) => opt.name == option.name);
+              if (conf_option) {
+                if (conf_option.user_perms && !check_perms(conf_option.user_perms)) {
+                  interaction.sendSilent(
+                    `You do not have the required permissions to run this command.\nPermissions required: \`${conf_option.user_perms.join(
+                      ", "
+                    )}\``
+                  );
+                  return false;
+                }
+                if (option.options?.[0] && conf_option.options?.[0]) {
+                  return check_option_perms(option.options, conf_option.options);
+                }
+              }
+            });
+            return true;
+          }
+          if (!check_option_perms(interaction.data.options, command.config.interaction_options.options)) {
+            return;
+          }
         }
       }
 
@@ -294,13 +330,24 @@ export class FishyClient extends Client {
   }
   // Generate a help command
   async help_command(): Promise<FishyCommand> {
+    const info_cat = this.categories.get("info");
+    if (info_cat) {
+      if (info_cat.commands) {
+        info_cat.commands.push("help");
+      } else {
+        info_cat.commands = ["help"];
+      }
+      this.categories.set("info", info_cat);
+    }
     let cmd: FishyCommand = {
       config: {
+        category: "info",
         bot_needed: false,
         name: "help",
         interaction_options: {
           name: "help",
-          description: "View info about the bot commands and categories",
+          description: "Info about the bot commands and categories",
+          usage: "/help category info | /help command ping",
           options: [
             {
               name: "help",
@@ -350,30 +397,44 @@ export class FishyClient extends Client {
           ],
         },
       },
-      help: {
-        description: "Usefull for getting help about a category or command or the whole bot",
-        usage: "/help category info | /help command ping",
-      },
       run: async (client, interaction) => {
-        let cmd_help = (cmd_name: string): MessageEmbed => {
-          let cmd = this.commands.get(cmd_name);
+        let cmd_help = (input: string): MessageEmbed => {
+          let input_split = input.split(/(?:,|\s+|\.)/gi);
+          console.log(input_split);
+          console.log(input);
+          let cmd = this.commands.get(input_split.shift() || "");
+          const cmd_name = cmd?.config.name || cmd?.config.interaction_options.name;
           if (!cmd) {
-            cmd = this.commands.get(cmd_name.toLowerCase());
-            if (!cmd) {
-              cmd = this.commands.get(
-                this.commands.keyArray()[
-                  this.commands
-                    .keyArray()
-                    .map((key) => key.toLowerCase())
-                    .indexOf(cmd_name.toLowerCase())
-                ]
-              );
-              if (!cmd) {
-                return new ErrorEmbed("No command found");
+            return new ErrorEmbed(`No command found with the name "${input.split(/(,|\s|\.|:)/gi)[0]}"`);
+          }
+          if (cmd.config.interaction_options.help_embed) return cmd.config.interaction_options.help_embed;
+          let cmd_title = cmd.config.name;
+          let interaction_config: FishyApplicationCommandOption | FishyApplicationCommand =
+            cmd.config.interaction_options;
+          if (input_split[0] && interaction_config) {
+            let current = input_split.shift();
+            while (current) {
+              if (!interaction_config) {
+                return new ErrorEmbed(`The command \"${cmd.config.name}\" doesn't have any subcommands`);
               }
+              console.log(current);
+              let option: FishyApplicationCommandOption | undefined = interaction_config.options?.find(
+                (opt) => opt.name.toLowerCase() === current!.trim().toLowerCase()
+              );
+              if (!option) {
+                return new ErrorEmbed(
+                  `The subcommand \"${current.trim().toLowerCase()}\" doesn't exist on "${cmd.config.name}"`,
+                  `You can run \`/help command ${cmd}\``
+                );
+              } else if (option) {
+                interaction_config = option;
+                cmd_title += ` ${option.name}`;
+              }
+
+              current = input_split.shift();
             }
           }
-          if (cmd.help.help_embed) return cmd.help.help_embed;
+
           let embed = new MessageEmbed().setAuthor(
             this.user!.tag,
             this.user!.displayAvatarURL(),
@@ -381,16 +442,71 @@ export class FishyClient extends Client {
               this.user!.id
             }&permissions=8&scope=bot%20applications.commands`
           );
-          if (cmd.help.color) embed.setColor(cmd.help.color);
+          function generateUsage(
+            title: string,
+            config: FishyApplicationCommand | FishyApplicationCommandOption
+          ): string {
+            let str = `/${title.trim()} `;
+            if (
+              !config.options?.find(
+                (opt) =>
+                  opt.type === ApplicationCommandOptionType.SUB_COMMAND ||
+                  opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
+              )
+            ) {
+              config.options?.forEach((opt) => {
+                if (opt.required) {
+                  str += `<${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
+                    Object.values(ApplicationCommandOptionType).indexOf(opt.type)
+                  ].toLowerCase()}> `;
+                } else {
+                  str += `[${opt.name}] `;
+                }
+              });
+            } else {
+              str +=
+                "<" +
+                config.options
+                  .map((opt: FishyApplicationCommandOption | ApplicationCommandOption) => {
+                    return `${opt.name}`;
+                  })
+                  .join("|") +
+                ">";
+            }
+            return str;
+          }
+          if (interaction_config.color) embed.setColor(interaction_config.color);
           else embed.setColor(this.categories.get(cmd.config.category || "")?.help_embed_color || "RANDOM");
-          if (cmd.help.title) embed.setTitle(cmd.help.title);
-          else embed.setTitle(`${cmd.config.name} - Command Help`);
-          embed.setDescription(`${cmd.help.description}
-Usage: \`${cmd.help.usage}\`
-User required perms: \`${cmd.config.user_perms?.join(", ") || "None"}\`
+          if (interaction_config.title) embed.setTitle(interaction_config.title);
+          else embed.setTitle(`'/${cmd_title}' - Command Help`);
+          let desc = `${interaction_config.description}\n 
+Usage: \`${interaction_config.usage || generateUsage(cmd_title, interaction_config) || "no specific usage"}\`
+User required perms: \`${interaction_config.user_perms?.join(", ") || "None"}\`
 Bot user needed: \`${cmd.config.bot_needed}\`
-`);
+`;
+          const subcommands: Array<string> = [];
 
+          if (
+            interaction_config.options?.find(
+              (opt) =>
+                opt.type === ApplicationCommandOptionType.SUB_COMMAND ||
+                opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
+            )
+          ) {
+            interaction_config.options?.forEach((opt) => {
+              if (opt.type === ApplicationCommandOptionType.SUB_COMMAND) {
+                subcommands.push(`${cmd_title} ${opt.name}`);
+              } else if (opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP && opt.options?.[0]) {
+                opt.options.forEach((opt2) => {
+                  if (opt2.type === ApplicationCommandOptionType.SUB_COMMAND) {
+                    subcommands.push(`${cmd_title} ${opt.name} ${opt2.name}`);
+                  }
+                });
+              }
+            });
+            desc += `Sub-Commands: \n\`${subcommands?.[0] ? subcommands.join("`,\n`") : "None"}\``;
+          }
+          embed.setDescription(desc);
           embed.setFooter(`bot perms: ${cmd.config.bot_perms?.join(", ") || "None"} `);
           return embed;
         };
@@ -428,12 +544,36 @@ Bot user needed: \`${cmd.config.bot_needed}\`
           if (cat.help_embed_title) embed.setTitle(cat.help_embed_title);
           else embed.setTitle(`${cat.name} - Category Help`);
           embed.setDescription(`${cat.description}
-
 ${cat.commands
   ?.map((command_name) => {
     let cmd = this.commands.get(command_name);
+
     if (cmd) {
-      return `**${command_name}** \`${cmd.help.description}\``;
+      const interaction = cmd.config.interaction_options;
+      if (
+        interaction.options?.find(
+          (opt) =>
+            opt.type === ApplicationCommandOptionType.SUB_COMMAND ||
+            opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
+        )
+      ) {
+        let strings: Array<string> = [];
+        interaction.options.forEach((opt) => {
+          if (opt.type === ApplicationCommandOptionType.SUB_COMMAND) {
+            strings.push(`**${command_name} ${opt.name}** \`${opt.description}\``);
+          } else if (opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP && opt.options?.[0]) {
+            opt.options.forEach((opt2) => {
+              if (opt2.type === ApplicationCommandOptionType.SUB_COMMAND) {
+                strings.push(`**${command_name} ${opt.name} ${opt2.name}** \`${opt.description}\``);
+              }
+            });
+          }
+        });
+        return strings.join("\n");
+      } else {
+        let description = cmd?.config.interaction_options.description;
+        return `**${command_name}** \`${description}\``;
+      }
     }
     return `**${command_name}**`;
   })
@@ -471,7 +611,38 @@ ${cat.commands
           ${this.categories
             .map(
               (val, key) =>
-                `**${val.name}**\nDesc: \`${val.description}\`\nCommands: \`${val.commands?.join("`, `") || "None"}\``
+                `**${val.name}**\nDesc: \`${val.description}\`\nCommands: ${
+                  val.commands
+                    ?.map((command_name) => {
+                      let command = this.commands.get(command_name);
+                      const interaction = command?.config.interaction_options;
+                      if (!command || !interaction) return `\`${command_name}\``;
+                      else if (
+                        interaction.options?.find(
+                          (opt) =>
+                            opt.type === ApplicationCommandOptionType.SUB_COMMAND ||
+                            opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
+                        )
+                      ) {
+                        let strings: Array<string> = [];
+                        interaction.options.forEach((opt) => {
+                          if (opt.type === ApplicationCommandOptionType.SUB_COMMAND) {
+                            strings.push(`\`${command_name} ${opt.name}\``);
+                          } else if (opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP && opt.options?.[0]) {
+                            opt.options.forEach((opt2) => {
+                              if (opt2.type === ApplicationCommandOptionType.SUB_COMMAND) {
+                                strings.push(`\`${command_name} ${opt.name} ${opt2.name}\``);
+                              }
+                            });
+                          }
+                        });
+                        return strings.join(", ");
+                      } else {
+                        return `\`${command_name}\``;
+                      }
+                    })
+                    .join(", ") || "`None`"
+                }`
             )
             .join("\n")}
           `);

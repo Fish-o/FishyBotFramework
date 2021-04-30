@@ -1,4 +1,4 @@
-import { ApplicationCommandOptionType, FishyCommandCode, FishyCommandConfig, FishyCommandHelp } from "../../../types";
+import { ApplicationCommandOptionType, FishyCommandCode, FishyCommandConfig } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
   console.log(interaction);
@@ -46,8 +46,4 @@ export const config: FishyCommandConfig = {
       },
     ],
   },
-};
-export const help: FishyCommandHelp = {
-  description: "bbblah",
-  usage: "blah",
 };

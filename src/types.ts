@@ -25,7 +25,8 @@ export interface FishyClientOptions {
   cmd_array?: Array<FishyCommand>;
   event_dir?: string;
   event_array?: Array<FishyEvent>;
-  //disable_category_import?: boolean;
+
+  disable_silence_command?: boolean;
   disable_load_on_construct?: boolean;
   disable_command_handler?: boolean;
   disable_help_command?: boolean;
@@ -55,7 +56,6 @@ export interface CommandCategory {
 export interface FishyCommand {
   run: FishyCommandCode;
   config: FishyCommandConfig;
-  help: FishyCommandHelp;
 }
 export interface FishyCommandCode {
   (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void | any>;
@@ -69,16 +69,25 @@ export interface FishyCommandConfig {
   bot_needed: boolean;
   bot_perms?: Array<PermissionResolvable>;
   user_perms?: Array<PermissionResolvable>;
-  interaction_options: ApplicationCommand;
+  interaction_options: FishyApplicationCommand;
   custom?: any;
 }
-export interface FishyCommandHelp {
+export interface FishyApplicationCommand extends ApplicationCommand {
+  user_perms?: Array<PermissionResolvable>;
+  options?: Array<FishyApplicationCommandOption>;
   title?: string;
-  description: string;
-  usage: string;
+  usage?: string;
   color?: string;
   help_embed?: MessageEmbed;
 }
+export interface FishyApplicationCommandOption extends ApplicationCommandOption {
+  user_perms?: Array<PermissionResolvable>;
+  title?: string;
+  usage?: string;
+  color?: string;
+  help_embed?: MessageEmbed;
+}
+
 export interface raw_interaction {
   name: string;
   description: string;
