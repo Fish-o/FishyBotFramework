@@ -26,10 +26,11 @@ export interface FishyClientOptions {
   event_dir?: string;
   event_array?: Array<FishyEvent>;
 
-  disable_silence_command?: boolean;
+  disable_silence_mode?: boolean;
   disable_load_on_construct?: boolean;
   disable_command_handler?: boolean;
   disable_help_command?: boolean;
+  disable_commands_command?: boolean;
   disable_interaction_load?: boolean;
   disable_db_connect?: boolean;
   disable_db_default_upsert?: boolean;

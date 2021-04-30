@@ -11,9 +11,10 @@ import {
   raw_received_interaction,
   webhookOptions,
 } from "../types";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import * as DbUtils from "../utils/DbUtils";
 import { InteractionData } from "./InteractionOptions";
+import * as Silence from "../commands/Silence";
 
 export class Interaction {
   client: FishyClient;
@@ -57,7 +58,22 @@ export class Interaction {
   }
 
   // default interaction response
-  async send(message?: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData) {
+  async send(
+    message?: string | MessageEmbed,
+    options?: InteractionApplicationCommandCallbackData
+  ): Promise<AxiosResponse<any>> {
+    if (Silence.isSilent(this.raw_member?.user?.id || "") && options?.flags !== 64) {
+      return this.sendSilent(message, options);
+    }
+
+    if (this.response_used) {
+      if (options?.flags !== 64) {
+        return this.send_webhook(message, options);
+      } else {
+        return this.send_webhook(message, options);
+      }
+    }
+
     let embed: MessageEmbed | undefined;
     if (typeof message == "object") {
       embed = message;
@@ -68,24 +84,27 @@ export class Interaction {
       DATA = Object.assign(DATA, options);
     }
     this.response_used = true;
-    return await axios.post(`https://discord.com/api/v8/interactions/${this.id}/${this.token}/callback`, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: DATA,
-    });
+    try {
+      return await axios.post(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: DATA,
+      });
+    } catch (err) {
+      console.error(err);
+      throw new Error(err);
+    }
   }
 
   // Send an ephemeral message (only the command caller can see the message)
-  async sendSilent(message: string, options?: InteractionApplicationCommandCallbackData) {
-    let DATA: InteractionApplicationCommandCallbackData = { flags: 64, content: message };
+  async sendSilent(
+    message?: string | MessageEmbed,
+    options?: InteractionApplicationCommandCallbackData
+  ): Promise<AxiosResponse<any>> {
+    let DATA: InteractionApplicationCommandCallbackData = { flags: 64 };
     if (options) {
       DATA = Object.assign(DATA, options);
     }
-
-    this.response_used = true;
-    return await axios.post(`https://discord.com/api/v8/interactions/${this.id}/${this.token}/callback`, {
-      type: InteractionResponseType.ChannelMessageWithSource,
-      data: DATA,
-    });
+    return this.send(message, DATA);
   }
 
   // Edit the original message, or a different message sent with the interaction token
@@ -118,7 +137,7 @@ export class Interaction {
     }
 
     return await axios.patch(
-      `https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}/messages/${message_id}`,
+      `https://discord.com/api/v9/webhooks/${this.client.user!.id}/${this.token}/messages/${message_id}`,
       options
     );
   }
@@ -130,7 +149,7 @@ export class Interaction {
     }
 
     return await axios.delete(
-      `https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}/messages/${message_id}`
+      `https://discord.com/api/v9/webhooks/${this.client.user!.id}/${this.token}/messages/${message_id}`
     );
   }
 
@@ -146,7 +165,7 @@ export class Interaction {
       DATA = Object.assign(DATA, options);
     }
 
-    return await axios.post(`https://discord.com/api/v8/webhooks/${this.client.user!.id}/${this.token}`, DATA);
+    return await axios.post(`https://discord.com/api/v9/webhooks/${this.client.user!.id}/${this.token}`, DATA);
   }
 
   // Get the discord.js channel

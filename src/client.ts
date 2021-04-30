@@ -13,6 +13,7 @@ import {
   FishyEvent,
   permission_overwritesType,
   raw_interaction,
+  raw_received_interaction,
   user_object,
 } from "./types";
 import * as fs from "fs";
@@ -23,8 +24,9 @@ import { ApplicationCommandBuild, ApplicationCommandCompare } from "./utils/Appl
 import { ErrorEmbed } from "./utils/Embeds";
 import mongoose, { Model } from "mongoose";
 import { InteractionDataOption } from "./structures/InteractionOptions";
-import { ifError } from "node:assert";
 
+import * as SilenceCommand from "./commands/Silence";
+import * as CommandsCommand from "./commands/Commands";
 // The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
@@ -231,7 +233,7 @@ export class FishyClient extends Client {
   // Load the interaction command handler
   async load_commandhandler() {
     // @ts-ignore
-    this.ws.on("INTERACTION_CREATE", async (raw_interaction) => {
+    this.ws.on("INTERACTION_CREATE", async (raw_interaction: raw_received_interaction) => {
       let interaction = new Interaction(this, raw_interaction);
       let command = this.commands.get(interaction.name);
       if (!command) {
@@ -243,7 +245,7 @@ export class FishyClient extends Client {
       }
       if (command.config.bot_needed === true) {
         if (!interaction.guild) {
-          return interaction.sendSilent(`To use this command add the bot to this server`);
+          return interaction.sendSilent(`To use this command add the bot to a server`);
         }
       }
       if (command.config.bot_perms?.[0]) {
@@ -661,6 +663,22 @@ ${cat.commands
     };
     return cmd;
   }
+
+  // Load silence command
+  load_silence_command() {
+    this.commands.set(SilenceCommand.config.name, SilenceCommand);
+    const info_cat = this.categories.get("info");
+    if (info_cat) {
+      if (info_cat.commands) {
+        info_cat.commands.push("silence");
+      } else {
+        info_cat.commands = ["silence"];
+      }
+      this.categories.set("info", info_cat);
+    }
+  }
+  load_commands_command() {}
+
   // Connect to the mongo db database
   async load_db() {
     try {
@@ -722,6 +740,7 @@ ${cat.commands
       let help_cmd = await this.help_command();
       this.commands.set(help_cmd.config.name, help_cmd);
     }
+    if (!options.disable_silence_mode) this.load_silence_command();
 
     if (!options.disable_interaction_load) await this.load_interactions();
     if (!options.disable_command_handler) await this.load_commandhandler();
