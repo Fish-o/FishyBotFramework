@@ -200,7 +200,7 @@ export class FishyClient extends Client {
             })
             .then((res) => console.log(`POST - ${res.status} Interaction: "${botSlashCommand.name}", `))
             .catch((err) => {
-              console.log(err.response.config);
+              console.log(err.response);
               console.log(err.response.status);
             });
         discord_done.push(discord_command.id!);
@@ -211,7 +211,7 @@ export class FishyClient extends Client {
             })
             .then((res) => console.log(`PATCH - ${res.status} Interaction: "${botSlashCommand.name}", `))
             .catch((err) => {
-              console.log(err.response.config);
+              console.log(err.response);
               console.log(err.response.status);
             });
       });
@@ -223,7 +223,7 @@ export class FishyClient extends Client {
             })
             .then((res) => console.log(`DELETE - ${res.status} Interaction: "${cmd.name}", `))
             .catch((err) => {
-              console.log(err.response.config);
+              console.log(err.response);
               console.log(err.response.status);
             });
         }
@@ -402,8 +402,6 @@ export class FishyClient extends Client {
       run: async (client, interaction) => {
         let cmd_help = (input: string): MessageEmbed => {
           let input_split = input.split(/(?:,|\s+|\.)/gi);
-          console.log(input_split);
-          console.log(input);
           let cmd = this.commands.get(input_split.shift() || "");
           const cmd_name = cmd?.config.name || cmd?.config.interaction_options.name;
           if (!cmd) {
@@ -419,7 +417,6 @@ export class FishyClient extends Client {
               if (!interaction_config) {
                 return new ErrorEmbed(`The command \"${cmd.config.name}\" doesn't have any subcommands`);
               }
-              console.log(current);
               let option: FishyApplicationCommandOption | undefined = interaction_config.options?.find(
                 (opt) => opt.name.toLowerCase() === current!.trim().toLowerCase()
               );
@@ -554,7 +551,6 @@ ${cat.commands
         if (interaction.data.options.find((arg) => arg.name == "category")) {
           let cat_arg = interaction.data.options.find((arg) => arg.name == "category");
           if (cat_arg?.options?.[0]) {
-            console.log(cat_arg);
             if (
               typeof cat_arg.options[0].options?.[0]?.value === "string" &&
               cat_arg.options[0].options?.[0].value?.startsWith("cmd_")
@@ -632,7 +628,7 @@ ${cat.commands
     return cmd;
   }
 
-  // Load silence command
+  // Load normal commands
   load_silence_command() {
     this.commands.set(SilenceCommand.config.name, SilenceCommand);
     const info_cat = this.categories.get("info");

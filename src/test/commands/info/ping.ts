@@ -1,6 +1,7 @@
 import { ApplicationCommandOptionType, FishyCommandCode, FishyCommandConfig } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
+  console.log(interaction);
   interaction.send("blah");
   interaction.send("YOOO");
 };
