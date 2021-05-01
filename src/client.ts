@@ -1,4 +1,4 @@
-import { Client, ClientOptions, Collection, Constants, MessageEmbed, PermissionResolvable } from "discord.js";
+import { Client, ClientOptions, Collection, Constants, Message, MessageEmbed, PermissionResolvable } from "discord.js";
 import {
   ApplicationCommand,
   ApplicationCommandOption,
@@ -21,7 +21,7 @@ import { join } from "path";
 import { Interaction } from "./structures/Interaction";
 import axios from "axios";
 import { ApplicationCommandBuild, ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
-import { ErrorEmbed } from "./utils/Embeds";
+import { ErrorEmbed, WarnEmbed } from "./utils/Embeds";
 import mongoose, { Model } from "mongoose";
 import { InteractionDataOption } from "./structures/InteractionOptions";
 
@@ -55,6 +55,19 @@ export class FishyClient extends Client {
 
     //Loading commands and events
     if (!options.disable_load_on_construct) this.load();
+
+    process.on("SIGINT", async () => {
+      await this.logToChannel("SIGINT signal received: stopping bot");
+      console.log("SIGINT signal received: stopping bot");
+      await Promise.all([this.destroy(), mongoose.disconnect()]);
+      await new Promise((resolve) => {
+        setTimeout(() => {
+          resolve("");
+        }, 1000);
+      });
+      console.log("exiting");
+      process.exit();
+    });
   }
 
   // Loads the events from a given event_dir
@@ -668,17 +681,57 @@ ${cat.commands
   // Catch discord errors
   async load_error_handler() {
     this.on("error", (err) => {
+      this.logToChannel(new ErrorEmbed("Discord api error", err.message));
       console.error("DISCORD API ERROR!!!");
       console.log(err);
     });
-    this.on("error", (err) => {
-      console.error("DISCORD API ERROR!!!");
-      console.log(err);
+    this.on("warn", (msg) => {
+      this.logToChannel(new WarnEmbed("Discord api warn", msg));
+      console.error("discord api warn");
+      console.warn(msg);
+    });
+    /*this.on("debug", (msg) => {
+      //this.logToChannel("Api Debug: `" + msg + "`");
+      console.error("discord api debug");
+      console.warn(msg);
+    });*/
+  }
+  async load_message_handlers() {
+    this.on("ready", () => {
+      console.log("READY");
+      this.logToChannel("**STARTED BOT!!!!**");
+    });
+    this.on("disconnect", () => {
+      console.log("disconnect");
+      this.logToChannel("**DISCONNECTED BOT!!!!**");
+    });
+    this.on("guildCreate", (guild) => {
+      const msg = `guildCreate "${guild.name}"\nOwner: ${guild.owner?.displayName}\nMember count: ${guild.memberCount}\nID: ${guild.id}`;
+      this.logToChannel(msg);
+      console.log(msg);
+    });
+    this.on("guildDelete", (guild) => {
+      const msg = `guildDelete "${guild.name}"\nOwner: ${guild.owner?.displayName}\nMember count: ${guild.memberCount}\nID: ${guild.id}`;
+      this.logToChannel(msg);
+      console.log(msg);
     });
   }
+
+  async logToChannel(message: string | MessageEmbed) {
+    if (this.fishy_options.info_channel_id) {
+      const channel = await this.channels.fetch(this.fishy_options.info_channel_id);
+      if (channel && channel.isText()) return channel.send(message);
+    }
+  }
+
   // Load command :)
   async load() {
     const options = this.fishy_options;
+    if (!options.disable_discord_error_catching) await this.load_error_handler();
+    if (options.info_channel_id) await this.load_message_handlers();
+
+    if (!options.disable_db_connect) await this.load_db();
+
     if (options.event_array) {
       options.event_array.forEach((event) => {
         if (
@@ -694,7 +747,6 @@ ${cat.commands
         }
       });
     }
-
     if (options.cmd_array) {
       options.cmd_array.forEach((new_command) => {
         new_command.config.category = new_command.config.category ?? "debug";
@@ -720,8 +772,6 @@ ${cat.commands
 
     if (!options.disable_interaction_load) await this.load_interactions();
     if (!options.disable_command_handler) await this.load_commandhandler();
-    if (!options.disable_db_connect) await this.load_db();
-    if (!options.disable_discord_error_catching) await this.load_error_handler();
   }
 }
 

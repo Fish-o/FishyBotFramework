@@ -16,6 +16,7 @@ if (require.main === module) {
       cmd_dir: "lib/test/commands",
       disable_load_on_construct: true,
       dev_guild_id: "729791412459143278",
+      info_channel_id: "838138764211126294",
     });
     await client.load();
     await client.login();

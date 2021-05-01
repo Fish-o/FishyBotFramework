@@ -25,6 +25,7 @@ export interface FishyClientOptions {
   cmd_array?: Array<FishyCommand>;
   event_dir?: string;
   event_array?: Array<FishyEvent>;
+  info_channel_id?: Snowflake;
 
   disable_silence_mode?: boolean;
   disable_load_on_construct?: boolean;
