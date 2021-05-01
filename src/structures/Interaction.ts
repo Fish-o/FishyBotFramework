@@ -9,6 +9,7 @@ import {
   InteractionApplicationCommandCallbackData,
   InteractionResponseType,
   raw_received_interaction,
+  user_object,
   webhookOptions,
 } from "../types";
 import axios, { AxiosResponse } from "axios";
@@ -31,6 +32,7 @@ export class Interaction {
   guild_id?: string;
   channel_id?: string;
   raw_member?: guild_member_object;
+  raw_user: user_object;
 
   response_used: boolean;
 
@@ -49,7 +51,7 @@ export class Interaction {
     this.channel_id = raw_interaction.channel_id;
 
     this.raw_member = raw_interaction.member;
-
+    this.raw_user = raw_interaction.user || raw_interaction.member!.user!;
     this.name = this.data.name;
     this.args = this.data.options!;
     this.mentions = this.data.mentions;
@@ -180,8 +182,12 @@ export class Interaction {
   }
   // Get the discord.js member
   get member() {
-    if (!this.raw_member?.user?.id) return undefined;
-    return this.guild?.members.cache.get(this.raw_member.user.id);
+    if (!this.raw_user?.id) return undefined;
+    return this.guild?.members.cache.get(this.raw_user.id);
+  }
+
+  get user() {
+    return this.client.users.cache.get(this.raw_user.id);
   }
 
   // DATABASE STUFF
