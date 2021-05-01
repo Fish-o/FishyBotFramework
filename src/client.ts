@@ -444,45 +444,13 @@ export class FishyClient extends Client {
               this.user!.id
             }&permissions=8&scope=bot%20applications.commands`
           );
-          function generateUsage(
-            title: string,
-            config: FishyApplicationCommand | FishyApplicationCommandOption
-          ): string {
-            let str = `/${title.trim()} `;
-            if (
-              !config.options?.find(
-                (opt) =>
-                  opt.type === ApplicationCommandOptionType.SUB_COMMAND ||
-                  opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
-              )
-            ) {
-              config.options?.forEach((opt) => {
-                if (opt.required) {
-                  str += `<${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
-                    Object.values(ApplicationCommandOptionType).indexOf(opt.type)
-                  ].toLowerCase()}> `;
-                } else {
-                  str += `[${opt.name}] `;
-                }
-              });
-            } else {
-              str +=
-                "<" +
-                config.options
-                  .map((opt: FishyApplicationCommandOption | ApplicationCommandOption) => {
-                    return `${opt.name}`;
-                  })
-                  .join("|") +
-                ">";
-            }
-            return str;
-          }
+
           if (interaction_config.color) embed.setColor(interaction_config.color);
           else embed.setColor(this.categories.get(cmd.config.category || "")?.help_embed_color || "RANDOM");
           if (interaction_config.title) embed.setTitle(interaction_config.title);
           else embed.setTitle(`'/${cmd_title}' - Command Help`);
           let desc = `${interaction_config.description}\n 
-Usage: \`${interaction_config.usage || generateUsage(cmd_title, interaction_config) || "no specific usage"}\`
+Usage: \`${interaction_config.usage || `/${generateUsage(cmd_title, interaction_config)}` || "no specific usage"}\`
 User required perms: \`${interaction_config.user_perms?.join(", ") || "None"}\`
 Bot user needed: \`${cmd.config.bot_needed}\`
 `;
@@ -677,7 +645,18 @@ ${cat.commands
       this.categories.set("info", info_cat);
     }
   }
-  load_commands_command() {}
+  load_commands_command() {
+    this.commands.set(CommandsCommand.config.name, CommandsCommand);
+    const info_cat = this.categories.get("info");
+    if (info_cat) {
+      if (info_cat.commands) {
+        info_cat.commands.push("commands");
+      } else {
+        info_cat.commands = ["commands"];
+      }
+      this.categories.set("info", info_cat);
+    }
+  }
 
   // Connect to the mongo db database
   async load_db() {
@@ -741,10 +720,44 @@ ${cat.commands
       this.commands.set(help_cmd.config.name, help_cmd);
     }
     if (!options.disable_silence_mode) this.load_silence_command();
+    if (!options.disable_commands_command) this.load_commands_command();
 
     if (!options.disable_interaction_load) await this.load_interactions();
     if (!options.disable_command_handler) await this.load_commandhandler();
     if (!options.disable_db_connect) await this.load_db();
     if (!options.disable_discord_error_catching) await this.load_error_handler();
   }
+}
+
+export function generateUsage(title: string, config: FishyApplicationCommand | FishyApplicationCommandOption): string {
+  let str = `${title.trim()} `;
+  if (
+    !config.options?.find(
+      (opt) =>
+        opt.type === ApplicationCommandOptionType.SUB_COMMAND ||
+        opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
+    )
+  ) {
+    config.options?.forEach((opt) => {
+      if (opt.required) {
+        str += `<${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
+          Object.values(ApplicationCommandOptionType).indexOf(opt.type)
+        ].toLowerCase()}> `;
+      } else {
+        str += `(${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
+          Object.values(ApplicationCommandOptionType).indexOf(opt.type)
+        ].toLowerCase()}) `;
+      }
+    });
+  } else {
+    str +=
+      "[" +
+      config.options
+        .map((opt: FishyApplicationCommandOption | ApplicationCommandOption) => {
+          return `${opt.name}`;
+        })
+        .join("|") +
+      "]";
+  }
+  return str;
 }
