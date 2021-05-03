@@ -556,7 +556,7 @@ ${cat.commands
           } else if (opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP && opt.options?.[0]) {
             opt.options.forEach((opt2) => {
               if (opt2.type === ApplicationCommandOptionType.SUB_COMMAND) {
-                strings.push(`**${command_name} ${opt.name} ${opt2.name}** \`${opt.description}\``);
+                strings.push(`**${command_name} ${opt.name} ${opt2.name}** \`${opt2.description}\``);
               }
             });
           }
