@@ -88,6 +88,7 @@ export interface FishyApplicationCommandOption extends ApplicationCommandOption 
   usage?: string;
   color?: string;
   help_embed?: MessageEmbed;
+  options?: Array<FishyApplicationCommandOption>;
 }
 
 export interface raw_interaction {
@@ -233,7 +234,7 @@ export interface role_tags_object {
 
 export interface channel_object {
   id: Snowflake;
-  type: number;
+  type: channel_types;
   guild_id?: Snowflake;
   position?: number;
   permission_overwrites: Array<permission_overwrites>;
@@ -260,6 +261,11 @@ export enum channel_types {
   GUILD_CATEGORY = 4,
   GUILD_NEWS = 5,
   GUILD_STORE = 6,
+
+  GUILD_NEWS_THREAD = 10,
+  GUILD_PUBLIC_THREAD = 11,
+  GUILD_PRIVATE_THREAD = 12,
+  GUILD_STAGE_VOICE = 13,
 }
 
 export interface permission_overwrites {

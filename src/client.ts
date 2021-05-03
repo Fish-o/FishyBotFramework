@@ -277,50 +277,62 @@ export class FishyClient extends Client {
         }
       }
 
-      if (command.config.user_perms?.[0]) {
-        function check_perms(perms: Array<PermissionResolvable>) {
-          let failed = false;
-          perms.forEach((perm) => {
-            if (!interaction.member!.hasPermission(perm)) {
-              failed = true;
+      // Check bot perms
+      // TODO: Make it send a message sayin all the perms the user needs
+      function check_perms(perms: Array<PermissionResolvable>) {
+        console.log(perms);
+        let failed = false;
+        perms.forEach((perm) => {
+          if (!interaction.member!.hasPermission(perm)) {
+            failed = true;
+          }
+        });
+        return !failed;
+      }
+
+      if (command.config.user_perms?.[0] && !check_perms(command.config.user_perms)) {
+        return interaction.sendSilent(
+          `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(
+            ", "
+          )}\``
+        );
+      }
+      if (
+        command.config.interaction_options.user_perms?.[0] &&
+        !check_perms(command.config.interaction_options.user_perms)
+      ) {
+        return interaction.sendSilent(
+          `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.interaction_options.user_perms.join(
+            ", "
+          )}\``
+        );
+      }
+      if (interaction.data.options?.[0] && command.config.interaction_options.options?.[0]) {
+        function check_option_perms(
+          interaction_options: Array<InteractionDataOption>,
+          config_options: Array<FishyApplicationCommandOption>
+        ): boolean {
+          if (!interaction_options?.[0] || !config_options?.[0]) return true;
+          interaction_options.forEach((option) => {
+            const conf_option = config_options.find((opt) => opt.name == option.name);
+            if (conf_option) {
+              if (conf_option.user_perms && !check_perms(conf_option.user_perms)) {
+                interaction.sendSilent(
+                  `You do not have the required permissions to run this command.\nPermissions required: \`${conf_option.user_perms.join(
+                    ", "
+                  )}\``
+                );
+                return false;
+              }
+              if (option.options?.[0] && conf_option.options?.[0]) {
+                return check_option_perms(option.options, conf_option.options);
+              }
             }
           });
-          return !failed;
+          return true;
         }
-
-        if (command.config.user_perms?.[0] && !check_perms(command.config.user_perms)) {
-          return interaction.sendSilent(
-            `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(
-              ", "
-            )}\``
-          );
-        } else if (interaction.data.options?.[0] && command.config.interaction_options.options?.[0]) {
-          function check_option_perms(
-            interaction_options: Array<InteractionDataOption>,
-            config_options: Array<FishyApplicationCommandOption>
-          ): boolean {
-            if (!interaction_options?.[0] || !config_options?.[0]) return true;
-            interaction_options.forEach((option) => {
-              const conf_option = config_options.find((opt) => opt.name == option.name);
-              if (conf_option) {
-                if (conf_option.user_perms && !check_perms(conf_option.user_perms)) {
-                  interaction.sendSilent(
-                    `You do not have the required permissions to run this command.\nPermissions required: \`${conf_option.user_perms.join(
-                      ", "
-                    )}\``
-                  );
-                  return false;
-                }
-                if (option.options?.[0] && conf_option.options?.[0]) {
-                  return check_option_perms(option.options, conf_option.options);
-                }
-              }
-            });
-            return true;
-          }
-          if (!check_option_perms(interaction.data.options, command.config.interaction_options.options)) {
-            return;
-          }
+        if (!check_option_perms(interaction.data.options, command.config.interaction_options.options)) {
+          return;
         }
       }
 

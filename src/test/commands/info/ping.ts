@@ -12,11 +12,13 @@ export const config: FishyCommandConfig = {
   interaction_options: {
     name: "ping",
     description: "Ping the bot",
+    user_perms: ["ADD_REACTIONS"],
     options: [
       {
         name: "user",
         description: "asdf",
         type: ApplicationCommandOptionType.USER,
+        user_perms: ["ADMINISTRATOR"],
       },
       {
         name: "channel",
