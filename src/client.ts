@@ -472,7 +472,9 @@ export class FishyClient extends Client {
           if (interaction_config.title) embed.setTitle(interaction_config.title);
           else embed.setTitle(`'/${cmd_title}' - Command Help`);
           let desc = `${interaction_config.description}\n 
-Usage: \`${interaction_config.usage || `/${generateUsage(cmd_title, interaction_config)}` || "no specific usage"}\`
+Usage: \`${
+            interaction_config.usage || `/${generateUsage(cmd_title, interaction_config, true)}` || "no specific usage"
+          }\`
 User required perms: \`${interaction_config.user_perms?.join(", ") || "None"}\`
 Bot user needed: \`${cmd.config.bot_needed}\`
 `;
@@ -787,7 +789,11 @@ ${cat.commands
   }
 }
 
-export function generateUsage(title: string, config: FishyApplicationCommand | FishyApplicationCommandOption): string {
+export function generateUsage(
+  title: string,
+  config: FishyApplicationCommand | FishyApplicationCommandOption,
+  types?: boolean
+): string {
   let str = `${title.trim()} `;
   if (
     !config.options?.find(
@@ -796,17 +802,19 @@ export function generateUsage(title: string, config: FishyApplicationCommand | F
         opt.type === ApplicationCommandOptionType.SUB_COMMAND_GROUP
     )
   ) {
-    config.options?.forEach((opt) => {
-      if (opt.required) {
-        str += `<${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
-          Object.values(ApplicationCommandOptionType).indexOf(opt.type)
-        ].toLowerCase()}> `;
-      } else {
-        str += `(${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
-          Object.values(ApplicationCommandOptionType).indexOf(opt.type)
-        ].toLowerCase()}) `;
-      }
-    });
+    if (types) {
+      config.options?.forEach((opt) => {
+        if (opt.required) {
+          str += `<${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
+            Object.values(ApplicationCommandOptionType).indexOf(opt.type)
+          ].toLowerCase()}> `;
+        } else {
+          str += `(${opt.name}: ${Object.keys(ApplicationCommandOptionType)[
+            Object.values(ApplicationCommandOptionType).indexOf(opt.type)
+          ].toLowerCase()}) `;
+        }
+      });
+    }
   } else {
     str +=
       "[" +
