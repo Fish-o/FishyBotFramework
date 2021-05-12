@@ -313,7 +313,7 @@ export class FishyClient extends Client {
           config_options: Array<FishyApplicationCommandOption>
         ): boolean {
           if (!interaction_options?.[0] || !config_options?.[0]) return true;
-          interaction_options.forEach((option) => {
+          for (let option of interaction_options) {
             const conf_option = config_options.find((opt) => opt.name == option.name);
             if (conf_option) {
               if (conf_option.user_perms && !check_perms(conf_option.user_perms)) {
@@ -328,7 +328,7 @@ export class FishyClient extends Client {
                 return check_option_perms(option.options, conf_option.options);
               }
             }
-          });
+          }
           return true;
         }
         if (!check_option_perms(interaction.data.options, command.config.interaction_options.options)) {
