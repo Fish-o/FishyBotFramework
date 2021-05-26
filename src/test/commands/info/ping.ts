@@ -1,9 +1,23 @@
 import { ApplicationCommandOptionType, FishyCommandCode, FishyCommandConfig } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
-  console.log(interaction);
-  interaction.send("blah");
-  interaction.send("YOOO");
+  const components = [
+    {
+      type: 1,
+      components: [
+        {
+          type: 2,
+          label: "Get Ping",
+          style: 1,
+          custom_id:
+            "send_ping|012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789",
+        },
+      ],
+    },
+  ];
+
+  // @ts-ignore
+  interaction.send("message", { components: components });
 };
 
 export const config: FishyCommandConfig = {

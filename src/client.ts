@@ -7,12 +7,14 @@ import {
   CommandCategory,
   FishyApplicationCommand,
   FishyApplicationCommandOption,
+  FishyButtonCommand,
+  FishyButtonCommandConfig,
   FishyClientOptions,
   FishyCommand,
+  FishyCommandCode,
   FishyCommandConfig,
   FishyEvent,
-  permission_overwritesType,
-  raw_interaction,
+  raw_received_button_interaction,
   raw_received_interaction,
   user_object,
 } from "./types";
@@ -27,15 +29,23 @@ import { InteractionDataOption } from "./structures/InteractionOptions";
 
 import * as SilenceCommand from "./commands/Silence";
 import * as CommandsCommand from "./commands/Commands";
+import ButtonInteraction from "./structures/ButtonInteraction";
+
+function hasOwnProperty<X extends {}, Y extends PropertyKey>(obj: X, prop: Y): obj is X & Record<Y, unknown> {
+  return obj.hasOwnProperty(prop);
+}
+
 // The main client!
 export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
   GuildModel: Model<any, any>;
   public commands: Collection<string, FishyCommand>;
+  public buttonCommands: Collection<string, FishyButtonCommand>;
   categories: Collection<string, CommandCategory>;
   constructor(options: FishyClientOptions, client_options?: ClientOptions) {
     super(client_options);
     this.commands = new Collection();
+    this.buttonCommands = new Collection();
     this.categories = new Collection();
     this.fishy_options = options;
 
@@ -134,22 +144,32 @@ export class FishyClient extends Client {
                 !file.endsWith(".d.ts")
               ) {
                 let command_path: string = join(category_path, file);
-                let new_command: FishyCommand = require(command_path);
-                // If the command doesnt have a given category, make the directory name its category
-                if (!new_command.config.category) {
-                  new_command.config.category = dir;
+                let new_unknown_command: FishyCommand | FishyButtonCommand = require(command_path);
+                if (hasOwnProperty(new_unknown_command.config, "name")) {
+                  const config: FishyCommandConfig = new_unknown_command.config;
+                  const rawCommandCode: any = new_unknown_command.run;
+                  const new_command: FishyCommand = { config: config, run: rawCommandCode };
+                  // If the command doesnt have a given category, make the directory name its category
+                  if (!config.category) {
+                    config.category = dir;
+                  }
+                  // Check if the category already exists, and doesnt include the command already
+                  if (
+                    this.categories.has(config.category) &&
+                    !this.categories.get(config.category)!.commands!.includes(config.name)
+                  ) {
+                    let old_category = this.categories.get(config.category)!;
+                    old_category.commands!.push(config.name);
+                    this.categories.set(config.category, old_category);
+                  }
+                  // Adds the command to the command Collection
+                  this.commands.set(config.name.toLowerCase(), new_command);
+                } else {
+                  const config: FishyButtonCommandConfig = new_unknown_command.config;
+                  const rawCommandCode: any = new_unknown_command.run;
+                  const new_command: FishyButtonCommand = { config: config, run: rawCommandCode };
+                  this.buttonCommands.set(config.custom_id, new_command);
                 }
-                // Check if the category already exists, and doesnt include the command already
-                if (
-                  this.categories.has(new_command.config.category) &&
-                  !this.categories.get(new_command.config.category)!.commands!.includes(new_command.config.name)
-                ) {
-                  let old_category = this.categories.get(new_command.config.category)!;
-                  old_category.commands!.push(new_command.config.name);
-                  this.categories.set(new_command.config.category, old_category);
-                }
-                // Adds the command to the command Collection
-                this.commands.set(new_command.config.name.toLowerCase(), new_command);
               }
               // If this was the last file, resolve
               if (file_index === file_array.length - 1 && dir_index === dir_array.length - 1) resolve(true);
@@ -245,115 +265,142 @@ export class FishyClient extends Client {
   }
   // Load the interaction command handler
   async load_commandhandler() {
-    // @ts-ignore
-    this.ws.on("INTERACTION_CREATE", async (raw_interaction: raw_received_interaction) => {
-      let interaction = new Interaction(this, raw_interaction);
-      let command = this.commands.get(interaction.name);
-      if (!command) {
-        if (!this.fishy_options.disable_msg_notfound)
-          interaction.sendSilent(
-            `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
-          );
-        return;
-      }
-      if (command.config.bot_needed === true) {
-        if (!interaction.guild) {
-          return interaction.sendSilent(`To use this command add the bot to a server`);
+    this.ws.on(
+      // @ts-ignore
+      "INTERACTION_CREATE",
+      async (raw_interaction: raw_received_interaction | raw_received_button_interaction) => {
+        console.log(raw_interaction.data);
+        // Check bot perms
+        // TODO: Make it send a message sayin all the perms the user needs
+        function check_perms(interaction: ButtonInteraction | Interaction, perms: Array<PermissionResolvable>) {
+          console.log(perms);
+          let failed = false;
+          perms.forEach((perm) => {
+            if (!interaction.member!.hasPermission(perm)) {
+              failed = true;
+            }
+          });
+          return !failed;
         }
-      }
-      if (command.config.bot_perms?.[0]) {
-        let failed = false;
-        command.config.bot_perms.forEach((perm) => {
-          if (!interaction.guild!.me?.hasPermission(perm)) {
-            failed = true;
-          }
-        });
-        if (failed) {
-          return interaction.sendSilent(
-            `The bot doesn't have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(
-              ", "
-            )}\``
+        if (raw_interaction.type !== 2) {
+          if (raw_interaction.type !== 3) return;
+          const custom_id = raw_interaction.data.custom_id;
+          const commands = this.buttonCommands.filter(
+            (cmd) =>
+              (cmd.config.atStart && custom_id.startsWith(cmd.config.custom_id)) || cmd.config.custom_id === custom_id
           );
-        }
-      }
+          const interaction = new ButtonInteraction(this, raw_interaction);
+          for (let [name, command] of commands) {
+            if (command.config.bot_needed && !interaction.guild)
+              return interaction.sendSilent(`To use this button add the bot to a server`);
 
-      // Check bot perms
-      // TODO: Make it send a message sayin all the perms the user needs
-      function check_perms(perms: Array<PermissionResolvable>) {
-        console.log(perms);
-        let failed = false;
-        perms.forEach((perm) => {
-          if (!interaction.member!.hasPermission(perm)) {
-            failed = true;
+            if (command.config.user_perms?.[0] && check_perms(interaction, command.config.user_perms)) {
+              return interaction.sendSilent(
+                `You do not have the required permissions to use this button.\nPermissions required: \`${command.config.user_perms.join(
+                  ", "
+                )}\``
+              );
+            }
+            command.run(this, interaction);
           }
-        });
-        return !failed;
-      }
+        } else {
+          let interaction = new Interaction(this, raw_interaction);
+          let command = this.commands.get(interaction.name);
+          if (!command) {
+            if (!this.fishy_options.disable_msg_notfound)
+              interaction.sendSilent(
+                `This interaction doesn't seem to exist, if you think this is a mistake, please contact ${this.fishy_options.author}`
+              );
 
-      if (command.config.user_perms?.[0] && !check_perms(command.config.user_perms)) {
-        return interaction.sendSilent(
-          `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(
-            ", "
-          )}\``
-        );
-      }
-      if (
-        command.config.interaction_options.user_perms?.[0] &&
-        !check_perms(command.config.interaction_options.user_perms)
-      ) {
-        return interaction.sendSilent(
-          `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.interaction_options.user_perms.join(
-            ", "
-          )}\``
-        );
-      }
-      if (interaction.data.options?.[0] && command.config.interaction_options.options?.[0]) {
-        function check_option_perms(
-          interaction_options: Array<InteractionDataOption>,
-          config_options: Array<FishyApplicationCommandOption>
-        ): boolean {
-          if (!interaction_options?.[0] || !config_options?.[0]) return true;
-          for (let option of interaction_options) {
-            const conf_option = config_options.find((opt) => opt.name == option.name);
-            if (conf_option) {
-              if (conf_option.user_perms && !check_perms(conf_option.user_perms)) {
-                interaction.sendSilent(
-                  `You do not have the required permissions to run this command.\nPermissions required: \`${conf_option.user_perms.join(
-                    ", "
-                  )}\``
-                );
-                return false;
-              }
-              if (option.options?.[0] && conf_option.options?.[0]) {
-                return check_option_perms(option.options, conf_option.options);
-              }
+            return;
+          }
+          if (command.config.bot_needed === true) {
+            if (!interaction.guild) {
+              return interaction.sendSilent(`To use this command add the bot to a server`);
             }
           }
-          return true;
-        }
-        if (!check_option_perms(interaction.data.options, command.config.interaction_options.options)) {
-          return;
-        }
-      }
+          if (command.config.bot_perms?.[0]) {
+            let failed = false;
+            command.config.bot_perms.forEach((perm) => {
+              if (!interaction.guild!.me?.hasPermission(perm)) {
+                failed = true;
+              }
+            });
+            if (failed) {
+              return interaction.sendSilent(
+                `The bot doesn't have the required permissions to run this command\nPermissions needed: \`${command.config.bot_perms.join(
+                  ", "
+                )}\``
+              );
+            }
+          }
 
-      try {
-        await command.run(this, interaction);
-      } catch (err) {
-        console.error(err);
-        if (!this.fishy_options.disable_msg_error) return;
-        let msg = `An error seems to have occurred in the command \`${interaction.name}\`: \n\`\`\`${err}\`\`\``;
-        let embed = new ErrorEmbed(
-          `An error seems to have occurred in the command: "${interaction.name}"`,
-          `Reason: \n\`\`\`${err}\`\`\``
-        );
-        if (interaction.response_used) {
-          interaction.send_webhook(embed);
-        } else {
-          interaction.sendSilent(msg);
+          if (command.config.user_perms?.[0] && !check_perms(interaction, command.config.user_perms)) {
+            return interaction.sendSilent(
+              `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.user_perms.join(
+                ", "
+              )}\``
+            );
+          }
+          if (
+            command.config.interaction_options.user_perms?.[0] &&
+            !check_perms(interaction, command.config.interaction_options.user_perms)
+          ) {
+            return interaction.sendSilent(
+              `You do not have the required permissions to run this command.\nPermissions required: \`${command.config.interaction_options.user_perms.join(
+                ", "
+              )}\``
+            );
+          }
+          if (interaction.data.options?.[0] && command.config.interaction_options.options?.[0]) {
+            function check_option_perms(
+              interaction_options: Array<InteractionDataOption>,
+              config_options: Array<FishyApplicationCommandOption>
+            ): boolean {
+              if (!interaction_options?.[0] || !config_options?.[0]) return true;
+              for (let option of interaction_options) {
+                const conf_option = config_options.find((opt) => opt.name == option.name);
+                if (conf_option) {
+                  if (conf_option.user_perms && !check_perms(interaction, conf_option.user_perms)) {
+                    interaction.sendSilent(
+                      `You do not have the required permissions to run this command.\nPermissions required: \`${conf_option.user_perms.join(
+                        ", "
+                      )}\``
+                    );
+                    return false;
+                  }
+                  if (option.options?.[0] && conf_option.options?.[0]) {
+                    return check_option_perms(option.options, conf_option.options);
+                  }
+                }
+              }
+              return true;
+            }
+            if (!check_option_perms(interaction.data.options, command.config.interaction_options.options)) {
+              return;
+            }
+          }
+
+          try {
+            await command.run(this, interaction);
+          } catch (err) {
+            console.error(err);
+            if (!this.fishy_options.disable_msg_error) return;
+            let msg = `An error seems to have occurred in the command \`${interaction.name}\`: \n\`\`\`${err}\`\`\``;
+            let embed = new ErrorEmbed(
+              `An error seems to have occurred in the command: "${interaction.name}"`,
+              `Reason: \n\`\`\`${err}\`\`\``
+            );
+            if (interaction.response_used) {
+              interaction.send_webhook(embed);
+            } else {
+              interaction.sendSilent(msg);
+            }
+          } finally {
+          }
         }
-      } finally {
       }
-    });
+    );
   }
   // Generate a help command
   async help_command(): Promise<FishyCommand> {

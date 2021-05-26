@@ -1,15 +1,18 @@
 import {
+  APIMessage,
   Client,
   ClientEvents,
   Integration,
   Message,
   MessageEmbed,
+  MessageOptions,
   PermissionResolvable,
   WSEventType,
 } from "discord.js";
 import { Model, MongooseDocument } from "mongoose";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
+import ButtonInteraction from "./structures/ButtonInteraction";
 import { Interaction } from "./structures/Interaction";
 
 // ALLLL THE TYPES
@@ -59,9 +62,18 @@ export interface FishyCommand {
   run: FishyCommandCode;
   config: FishyCommandConfig;
 }
+
+export interface FishyButtonCommand {
+  run: FishyButtonCommandCode;
+  config: FishyButtonCommandConfig;
+}
 export interface FishyCommandCode {
   (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void | any>;
 }
+export interface FishyButtonCommandCode {
+  (Client: FishyClient, interaction: ButtonInteraction): Promise<Message | Array<Message> | void | any>;
+}
+
 export interface FishyEventCode {
   (Client: FishyClient, data: any): Promise<void | any>;
 }
@@ -72,6 +84,13 @@ export interface FishyCommandConfig {
   bot_perms?: Array<PermissionResolvable>;
   user_perms?: Array<PermissionResolvable>;
   interaction_options: FishyApplicationCommand;
+  custom?: any;
+}
+export interface FishyButtonCommandConfig {
+  custom_id: string;
+  user_perms?: Array<PermissionResolvable>;
+  bot_needed?: boolean;
+  atStart?: boolean;
   custom?: any;
 }
 export interface FishyApplicationCommand extends ApplicationCommand {
@@ -99,7 +118,7 @@ export interface raw_interaction {
 
 export interface raw_received_interaction {
   id: string;
-  type: InteractionType;
+  type: 2;
   data?: ApplicationCommandInteractionData;
   guild_id?: string;
   channel_id?: string;
@@ -173,6 +192,7 @@ export enum ApplicationCommandOptionType {
 export enum InteractionType {
   Ping = 1,
   ApplicationCommand = 2,
+  Button = 3,
 }
 
 export interface ApplicationCommandOption {
@@ -188,6 +208,48 @@ export interface ApplicationCommandOptionChoice {
   value: string | number;
 }
 
+export interface raw_received_button_interaction {
+  id: string;
+  type: 3;
+  data: ComponentData;
+  member: guild_member_object;
+  message: message_object;
+  guild_id: string;
+  channel_id: string;
+  user: user_object;
+  token: string;
+  version: number;
+}
+export interface ComponentData {
+  custom_id: string;
+  component_type: 2;
+}
+export interface ComponentActionRow {
+  type: ComponentType.ActionRow;
+  components: ComponentButton[];
+}
+export interface ComponentButton {
+  type: ComponentType.Button;
+  label?: string;
+  style: ComponentStyle;
+  custom_id?: string;
+  url?: "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  emoji?: {
+    name?: string;
+    id?: string; // TODO: make this better
+  };
+}
+export enum ComponentType {
+  ActionRow = 1,
+  Button = 2,
+}
+export enum ComponentStyle {
+  Primary = 1,
+  Secondary = 2,
+  Success = 3,
+  Danger = 4,
+  Link = 5,
+}
 // Non interaction discord interfaces
 export interface guild_member_object {
   user?: user_object;
@@ -288,6 +350,23 @@ export interface webhookOptions {
   embeds?: Array<MessageEmbed>;
   payload_json?: string;
   allowed_mentions?: any;
+}
+export interface message_object {
+  type: number;
+  tts?: number;
+  timestamp: string;
+  pinned?: boolean;
+  mentions: [];
+  mention_roles: [];
+  mention_everyone: boolean;
+  id: string;
+  flags: number;
+  embeds?: any;
+  edited_timestamp?: string;
+  content?: string;
+  channel_id: string;
+  author: user_object;
+  attachments: any[];
 }
 
 type Snowflake = string;
