@@ -294,7 +294,7 @@ export class FishyClient extends Client {
             if (command.config.bot_needed && !interaction.guild)
               return interaction.sendSilent(`To use this button add the bot to a server`);
 
-            if (command.config.user_perms?.[0] && check_perms(interaction, command.config.user_perms)) {
+            if (command.config.user_perms?.[0] && !check_perms(interaction, command.config.user_perms)) {
               return interaction.sendSilent(
                 `You do not have the required permissions to use this button.\nPermissions required: \`${command.config.user_perms.join(
                   ", "

@@ -4,7 +4,7 @@ let number = 4;
 export const run: FishyButtonCommandCode = async (client, interaction) => {
   // 5 sends "fishierbot is thinking"
   // 7 edits original message
-  interaction.buttonAck();
+  interaction.send("_i see u_");
 };
 
 export const config: FishyButtonCommandConfig = {

@@ -50,7 +50,7 @@ export const config: FishyCommandConfig = {
         type: ApplicationCommandOptionType.STRING,
       },
       {
-        name: "INTEGER",
+        name: "integer",
         description: "asdf",
         type: ApplicationCommandOptionType.INTEGER,
       },

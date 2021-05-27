@@ -242,6 +242,7 @@ export interface ComponentButton {
     name?: string;
     id?: string; // TODO: make this better
   };
+  disabled?: boolean;
 }
 export enum ComponentType {
   ActionRow = 1,
