@@ -109,6 +109,14 @@ export class Interaction {
     return this.send(message, DATA);
   }
 
+  // Ack to edit later
+  async ack() {
+    return await axios.post(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
+      type: InteractionResponseType.DeferredChannelMessageWithSource,
+      data: {},
+    });
+  }
+
   // Edit the original message, or a different message sent with the interaction token
   async edit(
     message: string | MessageEmbed,

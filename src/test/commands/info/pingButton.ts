@@ -1,7 +1,10 @@
 import { FishyButtonCommandCode, FishyButtonCommandConfig } from "../../../types";
 
+let number = 4;
 export const run: FishyButtonCommandCode = async (client, interaction) => {
-  interaction.sendSilent(`Ping: ${client.ws.ping}\n${interaction.customID.split("|").slice(1).join("|")}`);
+  // 5 sends "fishierbot is thinking"
+  // 7 edits original message
+  interaction.buttonAck();
 };
 
 export const config: FishyButtonCommandConfig = {

@@ -15,9 +15,14 @@ export const run: FishyCommandCode = async (client, interaction) => {
       ],
     },
   ];
-
-  // @ts-ignore
-  interaction.send("message", { components: components });
+  interaction.ack();
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve(1);
+    }, 5000);
+  });
+  console.log("asdf");
+  interaction.edit("message", { components: components });
 };
 
 export const config: FishyCommandConfig = {

@@ -143,14 +143,17 @@ export interface InteractionResponse {
 
 export enum InteractionResponseType {
   Pong = 1,
-  ChannelMessageWithSource = 4,
-  DeferredChannelMessageWithSource = 5,
+  ChannelMessageWithSource = 4, // SENDS normal message
+  DeferredChannelMessageWithSource = 5, // AKA is thinking message
+  DeferredUpdateMessage = 6, // ACK without a loading state
+  UpdateMessage = 7, // Update the original message
 }
 export interface InteractionApplicationCommandCallbackData {
   tts?: boolean;
   content?: string;
   embeds?: Array<MessageEmbed>;
   allowed_mentions?: any;
+  components?: Array<ComponentActionRow | ComponentButton>;
   flags?: InteractionApplicationCommandCallbackDataFlags;
 }
 
@@ -188,6 +191,7 @@ export enum ApplicationCommandOptionType {
   "USER" = 6,
   "CHANNEL" = 7,
   "ROLE" = 8,
+  "MENTIONABLE" = 9,
 }
 export enum InteractionType {
   Ping = 1,
