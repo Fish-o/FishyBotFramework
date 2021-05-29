@@ -110,7 +110,7 @@ export class Interaction {
   }
 
   // Ack to edit later
-  async ack() {
+  async defer() {
     return await axios.post(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.DeferredChannelMessageWithSource,
       data: {},

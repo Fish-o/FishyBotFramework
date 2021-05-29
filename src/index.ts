@@ -1,7 +1,6 @@
 import { FishyClient } from "./client";
-import { ApplicationCommand, ApplicationCommandOptionType } from "./types";
-export { FishyClient };
-import { ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
+import * as types from "./types";
+export { FishyClient, types };
 
 // Useful for quick testing, only gets run when started with `node index.js`
 if (require.main === module) {

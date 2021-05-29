@@ -6,29 +6,32 @@ import {
   InteractionResponseType,
   raw_received_button_interaction,
 } from "../types";
+import ComponentMessage from "./ComponentMessage";
 import { Interaction } from "./Interaction";
 
 class ButtonInteraction extends Interaction {
   public customID: string;
   public componentType: 2;
   private _raw_button_interaction: raw_received_button_interaction;
-  private _message?: Message;
+  private _message?: ComponentMessage;
 
   constructor(client: FishyClient, raw_button_interaction: raw_received_button_interaction) {
     let data: any = JSON.parse(JSON.stringify(raw_button_interaction));
     data.type = 2;
     data.data = {};
     super(client, data);
+    console.log(raw_button_interaction);
     this.customID = raw_button_interaction.data.custom_id;
     this.componentType = raw_button_interaction.data.component_type;
     this._raw_button_interaction = raw_button_interaction;
 
     // TODO: make sending buttons/components work with .send
   }
-  get message() {
+
+  get message(): ComponentMessage {
     const channel = this.channel;
     if (!channel?.isText()) throw new Error("Channel is not a text channel");
-    return this._message || new Message(this.client, this._raw_button_interaction.message, channel);
+    return this._message || new ComponentMessage(this.client, this._raw_button_interaction.message, channel);
   }
 
   async editSource(message: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData | string) {
@@ -54,7 +57,7 @@ class ButtonInteraction extends Interaction {
       data: options,
     });
   }
-  async buttonAck() {
+  async deferButton() {
     return await axios.post(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.DeferredUpdateMessage,
     });
