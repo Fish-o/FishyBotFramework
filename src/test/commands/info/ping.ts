@@ -1,14 +1,21 @@
-import { ApplicationCommandOptionType, FishyCommandCode, FishyCommandConfig } from "../../../types";
+import {
+  ApplicationCommandOptionType,
+  ComponentActionRow,
+  ComponentStyle,
+  ComponentType,
+  FishyCommandCode,
+  FishyCommandConfig,
+} from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
-  const components = [
+  const components: ComponentActionRow[] = [
     {
-      type: 1,
+      type: ComponentType.ActionRow,
       components: [
         {
-          type: 2,
+          type: ComponentType.Button,
           label: "Get Ping",
-          style: 1,
+          style: ComponentStyle.Danger,
           custom_id:
             "send_ping|012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789",
         },

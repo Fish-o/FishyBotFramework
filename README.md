@@ -40,6 +40,7 @@ export const config: FishyCommandConfig = {
   name: "ping",               // Name of the command
   bot_needed: false,          // If the bot user is required to be in the guild
                               // Needed for `Interaction.channel.send()` for example
+  user_perms: [],             // An array of permissions the user needs to run the command
   interaction_options: {      // Discord interaction options
                               // https://discord.com/developers/docs/interactions/slash-commands#create-global-application-command-json-params
     name: "ping",
@@ -47,11 +48,6 @@ export const config: FishyCommandConfig = {
   },
 };
 
-// Extra info for the help command
-export const help: FishyCommandHelp = {
-  description: "Returns the websocket ping of the bot",
-  usage: "/ping",
-};
 ```
 
 Commands can be stored like this
@@ -66,6 +62,48 @@ create - /commands/"category"/command.js
 Example:
 
 ![image](https://cdn.discordapp.com/attachments/739529254219284500/823534291233406987/unknown.png)
+
+## Buttons!
+
+To create a button you can run:
+
+```TypeScript
+interaction.send(
+  "Message",{
+    type: ComponentType.ActionRow,
+    components: [
+      {
+        type: ComponentType.Button,
+        label: "Kick",
+        style: ComponentStyle.Danger,
+        custom_id:
+          `kick_${member.id}`,
+      },
+    ],
+  },
+)
+```
+
+To run code when this button is pressed, you can create a new file just like a normal command.
+You can put this file anywhere you can place a normal command!
+
+Put this code in the new file:
+
+```TypeScript
+export const run: FishyButtonCommandCode = async (client, interaction) => {
+  const memberID = interaction.customID.slice(config.custom_id.length);
+  const member = await interaction.guild.members.fetch(memberID)
+  await member.kick()
+  interaction.send("Kicked the member!");
+};
+
+export const config: FishyButtonCommandConfig = {
+  custom_id: "kick_",
+  atStart: true,
+  user_perms: ["KICK_MEMBERS"]
+  bot_needed: true,
+};
+```
 
 ## Events
 
