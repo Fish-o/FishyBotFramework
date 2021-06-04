@@ -20,7 +20,6 @@ class ButtonInteraction extends Interaction {
     data.type = 2;
     data.data = {};
     super(client, data);
-    console.log(raw_button_interaction);
     this.customID = raw_button_interaction.data.custom_id;
     this.componentType = raw_button_interaction.data.component_type;
     this._raw_button_interaction = raw_button_interaction;
@@ -34,7 +33,7 @@ class ButtonInteraction extends Interaction {
     return this._message || new ComponentMessage(this.client, this._raw_button_interaction.message, channel);
   }
 
-  async editSource(message: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData | string) {
+  async updateMessage(message: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData | string) {
     if (!options) {
       options = {};
     }
@@ -51,13 +50,14 @@ class ButtonInteraction extends Interaction {
     } else if (typeof message == "string" && typeof options !== "string") {
       options!.content = message;
     }
-
+    this.response_used = true;
     return await axios.patch(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.UpdateMessage,
       data: options,
     });
   }
-  async deferButton() {
+  async deferUpdateMessage() {
+    this.response_used = true;
     return await axios.post(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.DeferredUpdateMessage,
     });

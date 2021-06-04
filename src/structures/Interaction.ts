@@ -1,4 +1,4 @@
-import { Message, MessageEmbed } from "discord.js";
+import { GuildMember, Message, MessageEmbed, User } from "discord.js";
 import { FishyClient } from "..";
 import {
   ApplicationCommandInteractionData,
@@ -111,6 +111,7 @@ export class Interaction {
 
   // Ack to edit later
   async defer() {
+    this.response_used = true;
     return await axios.post(`https://discord.com/api/v9/interactions/${this.id}/${this.token}/callback`, {
       type: InteractionResponseType.DeferredChannelMessageWithSource,
       data: {},
@@ -145,7 +146,6 @@ export class Interaction {
     if (!message_id) {
       message_id = "@original";
     }
-
     return await axios.patch(
       `https://discord.com/api/v9/webhooks/${this.client.user!.id}/${this.token}/messages/${message_id}`,
       options
@@ -181,7 +181,9 @@ export class Interaction {
   // Get the discord.js channel
   get channel() {
     if (!this.channel_id) return undefined;
-    return this.guild?.channels.cache.get(this.channel_id);
+    let channel = this.guild?.channels.cache.get(this.channel_id);
+    if (!channel?.isText()) return;
+    return channel;
   }
   // Get the discord.js guild
   get guild() {
@@ -191,11 +193,14 @@ export class Interaction {
   // Get the discord.js member
   get member() {
     if (!this.raw_user?.id) return undefined;
-    return this.guild?.members.cache.get(this.raw_user.id);
+    if (!this.raw_member) return undefined;
+    if (!this.guild) return undefined;
+
+    return this.guild.members.cache.get(this.raw_user.id) || this.guild.members.add(this.raw_member, true);
   }
 
   get user() {
-    return this.client.users.cache.get(this.raw_user.id);
+    return this.client.users.cache.get(this.raw_user.id) || this.client.users.add(this.raw_user, true);
   }
 
   // DATABASE STUFF

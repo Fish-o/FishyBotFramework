@@ -8,6 +8,9 @@ import {
 } from "../../../types";
 
 export const run: FishyCommandCode = async (client, interaction) => {
+  console.log(interaction);
+  console.log(interaction.user);
+  console.log(interaction.member);
   const components: ComponentActionRow[] = [
     {
       type: ComponentType.ActionRow,

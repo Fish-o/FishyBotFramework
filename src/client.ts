@@ -269,11 +269,9 @@ export class FishyClient extends Client {
       // @ts-ignore
       "INTERACTION_CREATE",
       async (raw_interaction: raw_received_interaction | raw_received_button_interaction) => {
-        console.log(raw_interaction.data);
         // Check bot perms
         // TODO: Make it send a message sayin all the perms the user needs
         function check_perms(interaction: ButtonInteraction | Interaction, perms: Array<PermissionResolvable>) {
-          console.log(perms);
           let failed = false;
           perms.forEach((perm) => {
             if (!interaction.member!.hasPermission(perm)) {
