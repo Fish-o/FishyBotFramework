@@ -39,10 +39,10 @@ export function fetch(client: FishyClient, guild_id: string, options?: db_fetch_
     if (!db_guild_cache.has(guild_id) || db_guild_cache.get(guild_id)!.timestamp + ttl < Date.now())
       return resolve(await refresh(client, guild_id, options));
     else if (db_guild_cache.get(guild_id)!.timestamp + refresh_time < Date.now()) {
-      resolve(db_guild_cache.get(guild_id));
+      resolve(db_guild_cache.get(guild_id)?.data);
       return await refresh(client, guild_id, options);
     } else {
-      return resolve(db_guild_cache.get(guild_id));
+      return resolve(db_guild_cache.get(guild_id)?.data);
     }
   });
 }
