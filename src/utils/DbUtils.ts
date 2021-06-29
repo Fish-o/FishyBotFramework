@@ -31,22 +31,24 @@ async function refresh(
   return answer.data;
 }
 
-export function fetch(client: FishyClient, guild_id: string, options?: db_fetch_options): Promise<any> {
+export function fetch(client: FishyClient, guild_id: string, options?: db_fetch_options): Promise<any | undefined> {
   return new Promise(async (resolve, reject) => {
     if (!guild_id) {
       return;
     }
-    if (!db_guild_cache.has(guild_id) || db_guild_cache.get(guild_id)!.timestamp + ttl > Date.now())
+    if (!db_guild_cache.has(guild_id) || db_guild_cache.get(guild_id)!.timestamp + ttl < Date.now())
       return resolve(await refresh(client, guild_id, options));
-    else if (db_guild_cache.get(guild_id)!.timestamp + refresh_time > Date.now()) {
+    else if (db_guild_cache.get(guild_id)!.timestamp + refresh_time < Date.now()) {
       resolve(db_guild_cache.get(guild_id));
       return await refresh(client, guild_id, options);
+    } else {
+      return db_guild_cache.get(guild_id);
     }
   });
 }
 
 export async function update(client: FishyClient, guild_id: string, model: any) {
-  let res = await client.GuildModel.updateOne({ id: guild_id }, model, {new:true});
-  db_guild_cache.set(guild_id, {timestamp: Date.now(), data:res})
+  let res = await client.GuildModel.updateOne({ id: guild_id }, model, { new: true });
+  db_guild_cache.set(guild_id, { timestamp: Date.now(), data: res });
   return res;
 }
