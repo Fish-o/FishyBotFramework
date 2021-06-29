@@ -17,12 +17,16 @@ async function refresh(
   count?: number
 ): Promise<{ timestamp: number; data: any }> {
   let db_res = await client.GuildModel.findOne({ id: guild_id });
+  console.log(db_res);
   if (!db_res) {
-    if (!client.fishy_options.disable_db_default_upsert && !options?.disable_upsert) {
+    if (!client.fishy_options.disable_db_default_upsert && !options?.disable_upsert && count !== 1) {
+      console.log("asdf3333");
       const new_model = new client.GuildModel({ id: guild_id });
       await new_model.save();
       return await refresh(client, guild_id, options, (count = 1));
     } else {
+      console.log("asdf4444");
+
       throw Error(`Could not find the database document of "${guild_id}"`);
     }
   }
