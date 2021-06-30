@@ -41,7 +41,7 @@ export class Interaction {
 
     this.raw_interaction = raw_interaction;
 
-    this.data = new InteractionData(client, raw_interaction.data!);
+    this.data = new InteractionData(client, raw_interaction.data!, this.guild);
     this.type = raw_interaction.type;
 
     this.id = raw_interaction.id;
@@ -188,7 +188,15 @@ export class Interaction {
   // Get the discord.js guild
   get guild() {
     if (!this.guild_id) return undefined;
-    return this.client.guilds.cache.get(this.guild_id);
+    const cachedGuild = this.client.guilds.cache.get(this.guild_id);
+    if (!cachedGuild) {
+      console.log(`Fetching guild: ${this.guild_id}`);
+      this.client.guilds.fetch(this.guild_id).then(() => {
+        console.log(`Fetched guild: ${this.guild_id}`);
+      });
+      throw new Error("Fetching guild");
+    }
+    return cachedGuild;
   }
   // Get the discord.js member
   get member() {
