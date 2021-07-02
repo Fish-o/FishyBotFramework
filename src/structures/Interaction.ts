@@ -8,6 +8,7 @@ import {
   guild_member_object,
   InteractionApplicationCommandCallbackData,
   InteractionResponseType,
+  InteractionType,
   raw_received_interaction,
   user_object,
   webhookOptions,
@@ -20,14 +21,11 @@ import * as Silence from "../commands/Silence";
 export class Interaction {
   client: FishyClient;
   raw_interaction: raw_received_interaction;
-  data: InteractionData;
-  type: number;
+  data: any;
 
-  name: string;
-  args: Array<ApplicationCommandInteractionDataOption>;
-  mentions;
   id: string;
   token: string;
+  type: InteractionType;
 
   guild_id?: string;
   channel_id?: string;
@@ -41,7 +39,6 @@ export class Interaction {
 
     this.raw_interaction = raw_interaction;
 
-    this.data = new InteractionData(client, raw_interaction.data!, this.guild);
     this.type = raw_interaction.type;
 
     this.id = raw_interaction.id;
@@ -52,9 +49,6 @@ export class Interaction {
 
     this.raw_member = raw_interaction.member;
     this.raw_user = raw_interaction.user || raw_interaction.member!.user!;
-    this.name = this.data.name;
-    this.args = this.data.options!;
-    this.mentions = this.data.mentions;
 
     this.response_used = false;
   }
@@ -216,43 +210,9 @@ export class Interaction {
     if (!this.guild_id) throw Error("No guild id on interaction found");
     return DbUtils.fetch(this.client, this.guild_id, options);
   }
-  async updateDbGuild(model: any): Promise<any> {
+  async updateDbGuild(model: any): Promise<void> {
     if (!this.guild_id) throw Error("No guild id on interaction found");
-    let res = await DbUtils.update(this.client, this.guild_id, model);
-    return res;
+    await DbUtils.update(this.client, this.guild_id, model);
+    return;
   }
 }
-
-/* Interaction example:
-{
-  version: 1,
-  type: 2,
-  token: 'asdf'
-  member: {
-    user: {
-      username: 'Fish',
-      public_flags: 256,
-      id: '325893549071663104',
-      discriminator: '2455',
-      avatar: '5a4e62341afa47f200bd8f0dcf759512'
-    },
-    roles: [
-      '790969042851856425',
-      '790969058710519808',
-      '790969073210097715'
-    ],
-    premium_since: null,
-    permissions: '2147483647',
-    pending: false,
-    nick: 'sdfgsdfg',
-    mute: false,
-    joined_at: '2020-09-06T13:18:35.776000+00:00',
-    is_pending: false,
-    deaf: false
-  },
-  id: '792502570592894986',
-  guild_id: '752155794153406476',
-  data: { name: 'help', id: '791272914905333760' },
-  channel_id: '784438571620106311'
-}
-*/

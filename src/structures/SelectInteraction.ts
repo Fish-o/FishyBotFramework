@@ -5,26 +5,26 @@ import {
   InteractionApplicationCommandCallbackData,
   InteractionResponseType,
   raw_received_button_interaction,
+  raw_received_select_interaction,
 } from "../types";
 import ComponentMessage from "./ComponentMessage";
 import { Interaction } from "./Interaction";
 
-class ButtonInteraction extends Interaction {
-  public data: raw_received_button_interaction["data"];
+class SelectInteraction extends Interaction {
+  public data: raw_received_select_interaction["data"];
   private _message?: ComponentMessage;
-  private _raw_button_interaction: raw_received_button_interaction;
-  constructor(client: FishyClient, raw_button_interaction: raw_received_button_interaction) {
-    super(client, raw_button_interaction);
-    this._raw_button_interaction = raw_button_interaction;
-    this.data = raw_button_interaction.data;
+  private _raw_select_interaction: raw_received_select_interaction;
+  constructor(client: FishyClient, raw_select_interaction: raw_received_select_interaction) {
+    super(client, raw_select_interaction);
+    this._raw_select_interaction = raw_select_interaction;
+    this.data = raw_select_interaction.data;
   }
 
   get message(): ComponentMessage {
     const channel = this.channel;
     if (!channel?.isText()) throw new Error("Channel is not a text channel");
-    return this._message || new ComponentMessage(this.client, this._raw_button_interaction.message, channel);
+    return this._message || new ComponentMessage(this.client, this._raw_select_interaction.message, channel);
   }
-
   async updateMessage(message: string | MessageEmbed, options?: InteractionApplicationCommandCallbackData | string) {
     if (!options) {
       options = {};
@@ -55,4 +55,4 @@ class ButtonInteraction extends Interaction {
     });
   }
 }
-export { ButtonInteraction as default };
+export { SelectInteraction as default };

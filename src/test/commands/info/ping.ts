@@ -11,27 +11,43 @@ export const run: FishyCommandCode = async (client, interaction) => {
   console.log(interaction);
   console.log(interaction.user);
   console.log(interaction.member);
-  const components: ComponentActionRow[] = [
-    {
-      type: ComponentType.ActionRow,
-      components: [
-        {
-          type: ComponentType.Button,
-          label: "Get Ping",
-          style: ComponentStyle.Danger,
-          custom_id:
-            "send_ping|012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789",
-        },
-      ],
-    },
-  ];
 
-  interaction.send("message", { components: components });
+  const roles = await interaction.guild!.roles.fetch();
+
+  const emoji = { name: "atsymbol", id: "860227330173698069" };
+  const data = roles.cache.map((role) => ({ label: role.name, value: `${role.id}`, emoji }));
+  interaction.send("oi", {
+    components: [
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Select,
+            custom_id: "send_ping",
+            options: data,
+            max_values: data.length,
+            min_values: 4,
+          },
+        ],
+      },
+      {
+        type: ComponentType.ActionRow,
+        components: [
+          {
+            type: ComponentType.Button,
+            style: ComponentStyle.Success,
+            label: "HEY",
+            custom_id: "send_ping",
+          },
+        ],
+      },
+    ],
+  });
 };
 
 export const config: FishyCommandConfig = {
   name: "ping",
-  bot_needed: false,
+  bot_needed: true,
   interaction_options: {
     name: "ping",
     description: "Ping the bot",

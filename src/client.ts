@@ -5,22 +5,25 @@ import {
   ApplicationCommandOptionChoice,
   ApplicationCommandOptionType,
   CommandCategory,
+  ComponentType,
   FishyApplicationCommand,
   FishyApplicationCommandOption,
-  FishyButtonCommand,
-  FishyButtonCommandConfig,
   FishyClientOptions,
   FishyCommand,
   FishyCommandCode,
   FishyCommandConfig,
+  FishyComponentCommand,
+  FishyComponentCommandConfig,
   FishyEvent,
+  InteractionType,
+  raw_received_application_command,
   raw_received_button_interaction,
   raw_received_interaction,
+  raw_received_select_interaction,
   user_object,
 } from "./types";
 import * as fs from "fs";
 import { join } from "path";
-import { Interaction } from "./structures/Interaction";
 import axios from "axios";
 import { ApplicationCommandBuild, ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed, WarnEmbed } from "./utils/Embeds";
@@ -30,6 +33,8 @@ import { InteractionDataOption } from "./structures/InteractionOptions";
 import * as SilenceCommand from "./commands/Silence";
 import * as CommandsCommand from "./commands/Commands";
 import ButtonInteraction from "./structures/ButtonInteraction";
+import { SlashCommand } from "./structures/SlashCommand";
+import SelectInteraction from "./structures/SelectInteraction";
 
 function hasOwnProperty<X extends {}, Y extends PropertyKey>(obj: X, prop: Y): obj is X & Record<Y, unknown> {
   return obj.hasOwnProperty(prop);
@@ -40,12 +45,12 @@ export class FishyClient extends Client {
   fishy_options: FishyClientOptions;
   GuildModel: Model<any, any>;
   public commands: Collection<string, FishyCommand>;
-  public buttonCommands: Collection<string, FishyButtonCommand>;
+  public componentCommands: Collection<string, FishyComponentCommand>;
   categories: Collection<string, CommandCategory>;
   constructor(options: FishyClientOptions, client_options?: ClientOptions) {
     super(client_options);
     this.commands = new Collection();
-    this.buttonCommands = new Collection();
+    this.componentCommands = new Collection();
     this.categories = new Collection();
     this.fishy_options = options;
 
@@ -144,7 +149,7 @@ export class FishyClient extends Client {
                 !file.endsWith(".d.ts")
               ) {
                 let command_path: string = join(category_path, file);
-                let new_unknown_command: FishyCommand | FishyButtonCommand = require(command_path);
+                let new_unknown_command: FishyCommand | FishyComponentCommand = require(command_path);
                 if (hasOwnProperty(new_unknown_command.config, "name")) {
                   const config: FishyCommandConfig = new_unknown_command.config;
                   const rawCommandCode: any = new_unknown_command.run;
@@ -165,10 +170,10 @@ export class FishyClient extends Client {
                   // Adds the command to the command Collection
                   this.commands.set(config.name.toLowerCase(), new_command);
                 } else {
-                  const config: FishyButtonCommandConfig = new_unknown_command.config;
+                  const config: FishyComponentCommandConfig = new_unknown_command.config;
                   const rawCommandCode: any = new_unknown_command.run;
-                  const new_command: FishyButtonCommand = { config: config, run: rawCommandCode };
-                  this.buttonCommands.set(config.custom_id, new_command);
+                  const new_command: FishyComponentCommand = { config: config, run: rawCommandCode };
+                  this.componentCommands.set(config.custom_id, new_command);
                 }
               }
               // If this was the last file, resolve
@@ -268,10 +273,19 @@ export class FishyClient extends Client {
     this.ws.on(
       // @ts-ignore
       "INTERACTION_CREATE",
-      async (raw_interaction: raw_received_interaction | raw_received_button_interaction) => {
+      async (
+        raw_interaction:
+          | raw_received_application_command
+          | raw_received_button_interaction
+          | raw_received_select_interaction
+      ) => {
+        if (!raw_interaction.data) return;
         // Check bot perms
         // TODO: Make it send a message sayin all the perms the user needs
-        function check_perms(interaction: ButtonInteraction | Interaction, perms: Array<PermissionResolvable>) {
+        function check_perms(
+          interaction: ButtonInteraction | SelectInteraction | SlashCommand,
+          perms: Array<PermissionResolvable>
+        ) {
           let failed = false;
           perms.forEach((perm) => {
             if (!interaction.member!.hasPermission(perm)) {
@@ -280,14 +294,24 @@ export class FishyClient extends Client {
           });
           return !failed;
         }
-        if (raw_interaction.type !== 2) {
-          if (raw_interaction.type !== 3) return;
+        if (raw_interaction.type !== InteractionType.ApplicationCommand) {
+          if (raw_interaction.type !== InteractionType.MessageComponent) return;
           const custom_id = raw_interaction.data.custom_id;
-          const commands = this.buttonCommands.filter(
+          const commands = this.componentCommands.filter(
             (cmd) =>
               (cmd.config.atStart && custom_id.startsWith(cmd.config.custom_id)) || cmd.config.custom_id === custom_id
           );
-          const interaction = new ButtonInteraction(this, raw_interaction);
+          let interaction: ButtonInteraction | SelectInteraction;
+          if (raw_interaction.data.component_type == ComponentType.Button) {
+            const temp: any = raw_interaction;
+            const raw_button_interaction: raw_received_button_interaction = temp;
+            interaction = new ButtonInteraction(this, raw_button_interaction);
+          } else {
+            const temp: any = raw_interaction;
+            const raw_select_interaction: raw_received_select_interaction = temp;
+            interaction = new SelectInteraction(this, raw_select_interaction);
+          }
+
           for (let [name, command] of commands) {
             if (command.config.bot_needed && !interaction.guild)
               return interaction.sendSilent(`To use this button add the bot to a server`);
@@ -302,7 +326,7 @@ export class FishyClient extends Client {
             command.run(this, interaction);
           }
         } else {
-          let interaction = new Interaction(this, raw_interaction);
+          let interaction = new SlashCommand(this, raw_interaction);
           let command = this.commands.get(interaction.name);
           if (!command) {
             if (!this.fishy_options.disable_msg_notfound)

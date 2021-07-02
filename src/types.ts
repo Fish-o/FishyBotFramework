@@ -13,7 +13,8 @@ import { Model, MongooseDocument } from "mongoose";
 import { emit } from "node:process";
 import { FishyClient } from "./client";
 import ButtonInteraction from "./structures/ButtonInteraction";
-import { Interaction } from "./structures/Interaction";
+import SelectInteraction from "./structures/SelectInteraction";
+import { SlashCommand } from "./structures/SlashCommand";
 
 // ALLLL THE TYPES
 
@@ -63,15 +64,17 @@ export interface FishyCommand {
   config: FishyCommandConfig;
 }
 
-export interface FishyButtonCommand {
-  run: FishyButtonCommandCode;
-  config: FishyButtonCommandConfig;
+export interface FishyComponentCommand {
+  run: FishyComponentCommandCode;
+  config: FishyComponentCommandConfig;
 }
 export interface FishyCommandCode {
-  (Client: FishyClient, interaction: Interaction): Promise<Message | Array<Message> | void | any>;
+  (Client: FishyClient, interaction: SlashCommand): Promise<Message | Array<Message> | void | any>;
 }
-export interface FishyButtonCommandCode {
-  (Client: FishyClient, interaction: ButtonInteraction): Promise<Message | Array<Message> | void | any>;
+export interface FishyComponentCommandCode {
+  (Client: FishyClient, interaction: ButtonInteraction | SelectInteraction): Promise<
+    Message | Array<Message> | void | any
+  >;
 }
 
 export interface FishyEventCode {
@@ -86,7 +89,7 @@ export interface FishyCommandConfig {
   interaction_options: FishyApplicationCommand;
   custom?: any;
 }
-export interface FishyButtonCommandConfig {
+export interface FishyComponentCommandConfig {
   custom_id: string;
   user_perms?: Array<PermissionResolvable>;
   bot_needed?: boolean;
@@ -116,18 +119,6 @@ export interface raw_interaction {
   options?: Array<ApplicationCommandOption>;
 }
 
-export interface raw_received_interaction {
-  id: string;
-  type: 2;
-  data?: ApplicationCommandInteractionData;
-  guild_id?: string;
-  channel_id?: string;
-  member?: guild_member_object;
-  user?: user_object;
-  token: string;
-  version: number;
-}
-
 export interface ApplicationCommand {
   id?: string;
   application_id?: string;
@@ -148,6 +139,7 @@ export enum InteractionResponseType {
   DeferredUpdateMessage = 6, // ACK without a loading state
   UpdateMessage = 7, // Update the original message
 }
+
 export interface InteractionApplicationCommandCallbackData {
   tts?: boolean;
   content?: string;
@@ -193,11 +185,6 @@ export enum ApplicationCommandOptionType {
   "ROLE" = 8,
   "MENTIONABLE" = 9,
 }
-export enum InteractionType {
-  Ping = 1,
-  ApplicationCommand = 2,
-  Button = 3,
-}
 
 export interface ApplicationCommandOption {
   type: ApplicationCommandOptionType;
@@ -211,43 +198,116 @@ export interface ApplicationCommandOptionChoice {
   name: string;
   value: string | number;
 }
-
-export interface raw_received_button_interaction {
+export interface raw_received_interaction {
   id: string;
-  type: 3;
-  data: ComponentData;
-  member: guild_member_object;
-  message: message_object;
-  guild_id: string;
-  channel_id: string;
-  user: user_object;
+  application_id: string;
+  type: InteractionType;
+  data?: {};
+  guild_id?: string;
+  channel_id?: string;
+  member?: guild_member_object;
+  user?: user_object;
   token: string;
-  version: number;
+  version: 1;
 }
-export interface ComponentData {
-  custom_id: string;
-  component_type: 2;
+export interface raw_received_application_command extends raw_received_interaction {
+  type: InteractionType.ApplicationCommand;
+  data?: ApplicationCommandInteractionData;
 }
+
+export interface raw_received_button_interaction extends raw_received_interaction {
+  type: InteractionType.MessageComponent;
+  data: {
+    custom_id: string;
+    component_type: ComponentType.Button;
+  };
+  message: message_object;
+}
+
+export interface raw_received_select_interaction extends raw_received_interaction {
+  type: InteractionType.MessageComponent;
+  data: {
+    custom_id: string;
+    component_type: ComponentType.Select;
+    values: string[]; // TODO: could this be undefined?
+  };
+  message: message_object;
+}
+
 export interface ComponentActionRow {
   type: ComponentType.ActionRow;
-  components: ComponentButton[];
+  components: Array<ComponentButton | ComponentSelect>;
 }
+
 export interface ComponentButton {
   type: ComponentType.Button;
   label?: string;
   style: ComponentStyle;
   custom_id?: string;
-  url?: "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
-  emoji?: {
-    name?: string;
-    id?: string; // TODO: make this better
-  };
+  url?: string;
+  emoji?: partialEmoji;
   disabled?: boolean;
 }
+export interface ComponentSelect {
+  type: ComponentType.Select;
+  custom_id: string;
+  placeholder?: string;
+  min_values?: TwentyFive | number;
+  max_values?: TwentyFive | number; // TODO: make sure these are indeed optional
+  options: ComponentSelectOption[];
+}
+export interface ComponentSelectOption {
+  label: string;
+  value: string;
+  description?: string;
+  emoji?: partialEmoji;
+  default?: boolean;
+}
+
+export interface partialEmoji {
+  id?: string;
+  name?: string;
+  animated?: boolean;
+}
+export type TwentyFive =
+  | 0
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | 8
+  | 9
+  | 10
+  | 11
+  | 12
+  | 13
+  | 14
+  | 15
+  | 16
+  | 17
+  | 18
+  | 19
+  | 20
+  | 21
+  | 22
+  | 23
+  | 24
+  | 25;
+
 export enum ComponentType {
   ActionRow = 1,
   Button = 2,
+  Select = 3,
 }
+export enum InteractionType {
+  Ping = 1,
+  ApplicationCommand = 2,
+  MessageComponent = 3,
+}
+
 export enum ComponentStyle {
   Primary = 1,
   Secondary = 2,
@@ -369,6 +429,14 @@ export interface message_object {
   embeds?: any;
   edited_timestamp?: string;
   content?: string;
+  components?: ComponentActionRow[];
+  interaction?: {
+    id: string;
+    name: string;
+    type: InteractionType;
+    user: user_object;
+  };
+  webhook_id?: string;
   channel_id: string;
   author: user_object;
   attachments: any[];
