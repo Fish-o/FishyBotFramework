@@ -50,9 +50,12 @@ export class InteractionDataMentions {
     if (!this.data.members) return undefined;
     if (!this.guild) throw new Error("Resolved member in data, but no guild");
     let collection = new Collection<string, GuildMember>();
-    Object.keys(this.data.members).map((member_id) =>
-      collection.set(member_id, this.guild!.members.add(this.data.members![member_id]))
-    );
+    Object.entries(this.data.members).map((member) => {
+      const user = this.data?.users?.[member[0]];
+      if (!user) throw new Error("Resolved member in data, but no user");
+      member[1].user = user;
+      collection.set(member[0], this.guild!.members.add(member[1]));
+    });
     return collection;
   }
   get users(): Collection<string, User> | undefined {

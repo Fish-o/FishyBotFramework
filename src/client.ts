@@ -28,7 +28,7 @@ import axios from "axios";
 import { ApplicationCommandBuild, ApplicationCommandCompare } from "./utils/ApplicationCommandCompare";
 import { ErrorEmbed, WarnEmbed } from "./utils/Embeds";
 import mongoose, { Model } from "mongoose";
-import { InteractionDataOption } from "./structures/InteractionOptions";
+import { InteractionDataOption } from "./structures/InteractionData";
 
 import * as SilenceCommand from "./commands/Silence";
 import * as CommandsCommand from "./commands/Commands";

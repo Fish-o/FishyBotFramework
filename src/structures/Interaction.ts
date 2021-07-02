@@ -15,7 +15,7 @@ import {
 } from "../types";
 import axios, { AxiosResponse } from "axios";
 import * as DbUtils from "../utils/DbUtils";
-import { InteractionData } from "./InteractionOptions";
+import { InteractionData } from "./InteractionData";
 import * as Silence from "../commands/Silence";
 
 export class Interaction {
