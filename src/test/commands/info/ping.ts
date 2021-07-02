@@ -11,7 +11,7 @@ export const run: FishyCommandCode = async (client, interaction) => {
   console.log(interaction);
   console.log(interaction.user);
   console.log(interaction.member);
-
+  interaction.mentions?.roles?.first();
   const roles = await interaction.guild!.roles.fetch();
 
   const emoji = { name: "atsymbol", id: "860227330173698069" };

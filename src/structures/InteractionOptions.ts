@@ -65,7 +65,13 @@ export class InteractionDataMentions {
     if (!this.data.roles) return undefined;
     if (!this.guild) throw new Error("Resolved role in data, but no guild");
     let collection = new Collection<string, Role>();
-    Object.values(this.data.roles).map((role) => collection.set(role.id, this.guild!.roles.add(role)));
+    console.log(this.data.roles);
+    Object.values(this.data.roles).map((role) => {
+      //@ts-ignore
+      role.permissions = Number.parseInt(role.permissions);
+      const Role = this.guild!.roles.add(role);
+      collection.set(role.id, Role);
+    }); //TODO: do this better
     return collection;
   }
 }
