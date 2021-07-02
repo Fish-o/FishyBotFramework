@@ -13,6 +13,8 @@ export const run: FishyCommandCode = async (client, interaction) => {
   console.log(interaction.member);
   interaction.mentions?.roles?.first();
   interaction.mentions?.members?.first();
+  interaction.mentions?.channels?.first();
+  interaction.mentions?.users?.first();
 
   const roles = await interaction.guild!.roles.fetch();
 
