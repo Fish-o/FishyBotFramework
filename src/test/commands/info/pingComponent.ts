@@ -1,11 +1,10 @@
+import SelectInteraction from "../../../structures/SelectInteraction";
 import { FishyComponentCommandCode, FishyComponentCommandConfig } from "../../../types";
 
 export const run: FishyComponentCommandCode = async (client, interaction) => {
-  console.log(interaction);
-  //interaction.send("_pong_");
-  interaction.deferUpdateMessage();
-  //interaction.updateMessage(" PP");
-  interaction.edit("_pong_");
+  if (interaction instanceof SelectInteraction) {
+    interaction.sendSilent(`You have selected: \`${interaction.data.values.join(", ")}\``);
+  }
 };
 
 export const config: FishyComponentCommandConfig = {
