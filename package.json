@@ -1,12 +1,16 @@
 {
   "name": "fishy-bot-framework",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A basic framework for making interaction based discord bot",
   "main": "lib/index.js",
   "author": "fish_o",
   "license": "gpl-3.0",
   "private": false,
   "homepage": "https://github.com/fish-o/FishyBotFramework",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fish-o/FishyBotFramework.git"
+  },
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc",
