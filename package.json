@@ -6,6 +6,7 @@
   "author": "fish_o",
   "license": "gpl-3.0",
   "private": false,
+  "homepage": "https://github.com/fish-o/FishyBotFramework",
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc",
@@ -14,7 +15,7 @@
   "dependencies": {
     "@types/mongoose": "^5.10.4",
     "axios": "^0.21.1",
-    "discord.js": "^12.5.1",
+    "discord.js": "^12.5.3",
     "dotenv": "^8.2.0",
     "fs": "^0.0.1-security",
     "mongoose": "^5.12.1"
